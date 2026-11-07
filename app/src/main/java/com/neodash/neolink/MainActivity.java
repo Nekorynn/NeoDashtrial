@@ -13,7 +13,7 @@ import android.widget.*;
 import java.util.*;
 
 public final class MainActivity extends Activity {
- private static final int REQ_BT=71;
+ private static final int REQ_BT=71, REQ_NOTIF=72;
  private static final String ACTION_OPEN="com.neodash.neolink.action.OPEN_RECEIVER";
  private static final String DIPLAY="com.shihab.diplay.hudtest", DIAUTO="com.neodash.diauto";
  private static final int BG=Color.rgb(7,12,19), PANEL=Color.rgb(17,25,35), YELLOW=Color.rgb(223,255,0), CYAN=Color.rgb(83,207,255), MAGENTA=Color.rgb(255,65,165), WHITE=Color.rgb(240,245,250);
@@ -22,7 +22,7 @@ public final class MainActivity extends Activity {
  @Override public void onCreate(Bundle b) {
   super.onCreate(b); prefs=getSharedPreferences("neolink",MODE_PRIVATE);
   if(ACTION_OPEN.equals(getIntent().getAction())) { String r=getIntent().getStringExtra("receiver"); if("diplay".equalsIgnoreCase(r)){launch(DIPLAY);finish();return;} if("diauto".equalsIgnoreCase(r)){launch(DIAUTO);finish();return;} }
-  buildUi(); refresh();
+  buildUi();\n  if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED) requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},REQ_NOTIF);\n  else refresh();
  }
  private void buildUi(){
   LinearLayout root=new LinearLayout(this); root.setOrientation(1); root.setPadding(dp(22),dp(16),dp(22),dp(16)); root.setBackgroundColor(BG);
@@ -57,5 +57,5 @@ public final class MainActivity extends Activity {
  private TextView text(String s,int size,int color,boolean bold){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);if(bold)t.setTypeface(Typeface.DEFAULT,Typeface.BOLD);return t;}
  private Button button(String s,int bg,int fg){Button b=new Button(this);b.setText(s);b.setTextSize(12);b.setTextColor(fg);b.setTypeface(Typeface.DEFAULT,Typeface.BOLD);b.setBackgroundTintList(android.content.res.ColorStateList.valueOf(bg));return b;}
  private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
- @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==REQ_BT)refresh();}
+ @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==REQ_BT || r==REQ_NOTIF)refresh();}
 }
