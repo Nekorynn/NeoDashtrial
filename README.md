@@ -4,19 +4,19 @@
 
 A lightweight Android automotive launcher preview for landscape Android head units.
 
-## What's included
+## Included in this preview
 
-- Chrome-framed app art with combined electric yellow, neon magenta and cyber cyan.
-- DiPlay, DiAuto, Waze and Spotify dashboard shortcuts.
-- Google and common Android app icon pack.
-- Chrome + Neon styling for recognized apps in the dashboard, app drawer and recent-app switcher.
-- Unknown apps retain their original Android icons; Standard appearance remains unchanged.
+- Chrome-frame artwork with combined electric yellow, magenta and cyan neon.
+- DiPlay, DiAuto, Waze and Spotify shortcuts.
+- Google and commonly used Android apps, including Google, Chrome, Maps, YouTube, Gmail, Drive, Photos, Calendar, Meet, Docs, Sheets, Slides, Keep, Translate, Play Store, Play Games, YouTube Music, Assistant, Files, Wallet, Contacts, Phone and Messages.
+- Known apps receive NeoDash artwork in the dashboard, app drawer and launcher-managed recent-app switcher.
+- Unknown apps keep their original Android icons. Standard appearance remains unchanged.
 
-## Download the APK
+## Download
 
-Open **Actions → Build NeoDash 0.3.1 APK → Artifacts** to download the latest debug APK.
+Go to **Actions → Build NeoDash 0.3.1 APK → Artifacts** and download the latest debug APK.
 
-This is a debug-signed preview build, not a Play Store release. It has compiled successfully in GitHub Actions but still needs testing on a real head unit.
+This is a debug-signed preview, not a Play Store release. The GitHub Actions build has passed. Real head-unit testing is still required.
 
 ## Build locally
 
@@ -28,15 +28,15 @@ python build-input/patch_chrome_neon.py .
 gradle --no-daemon clean assembleDebug
 ```
 
-Output: `app/build/outputs/apk/debug/app-debug.apk`
+APK output: `app/build/outputs/apk/debug/app-debug.apk`
 
-## Compatibility notes
+## Compatibility
 
-- Minimum SDK 23 (Android 6.0), landscape-first.
-- GPS, Bluetooth, Wi-Fi and physical vehicle-button support depends on permissions, Android version and head-unit firmware.
-- Google app artwork is illustrative and does not modify icons inside the original apps.
+- Landscape-first, minimum SDK 23 (Android 6.0).
+- GPS, Bluetooth, Wi-Fi and physical vehicle button support depend on Android permissions, device firmware and hardware.
+- Google artwork is illustrative; it does not replace or modify icons inside Google apps.
 
-## Brand palette
+## Brand colors
 
 - Obsidian `#101116`
 - Electric yellow `#F5E342`
