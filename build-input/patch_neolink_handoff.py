@@ -9,7 +9,14 @@ for p in root.rglob("MainActivity.java"):
     if 'addTile(apps,"SETTINGS"' in s and "private void showMedia()" in s:
         candidates.append((p,s))
 if not candidates:
-    raise SystemExit("Could not find the expected NeoDash dashboard source anchors; no files changed.")
+    markers=("showMedia", "buildHome", "buildDashboard", "launchByName", "QUICK LAUNCH", "Quick launch", "showApps", "quickLaunch")
+    for p in root.rglob("*"):
+        if p.suffix.lower() not in (".java", ".kt"): continue
+        try: body=p.read_text(encoding="utf-8")
+        except Exception: continue
+        hits=[m for m in markers if m in body]
+        if hits: print("DASHBOARD_CANDIDATE",p,"MARKERS",",".join(hits))
+    raise SystemExit("NeoDash 0.3.2 source no longer uses the old launcher UI anchors; inspect candidate paths before patching.")
 path,src=candidates[0]
 anchor='addTile(apps,"SETTINGS","⚙",CYAN,()->showSettings());'
 if 'launchNeoLink()' not in src:
