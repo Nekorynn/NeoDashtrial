@@ -54,6 +54,12 @@ jobs:
           gzip -dc build-input/patch_neodash_032.py.gz > /tmp/patch_neodash_032.py
           python /tmp/patch_neodash_032.py build-source/NeoDash-Sleek-v0.3.0
 
+      - name: Inspect legacy NeoDash receiver integration before migration
+        run: |
+          echo '--- Android manifest ---'
+          sed -n '1,240p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/AndroidManifest.xml
+          echo '--- Receiver and connection code references ---'
+          grep -RniE 'DiPlay|DiAuto|receiver|ACTION_ACL|ACTION_USB|BluetoothDevice|startActivity' build-source/NeoDash-Sleek-v0.3.0/app/src/main --include='*.java' --include='*.kt' | head -n 180 || true
       - name: Build debug APK
         run: gradle --no-daemon -p build-source/NeoDash-Sleek-v0.3.0 clean assembleDebug
 
