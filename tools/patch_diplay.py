@@ -82,4 +82,14 @@ light="""        val LIGHT = DiPlayPalette(
             overlayDanger = Color.rgb(155, 48, 48),
         )"""
 p.write_text(s[:l0]+light+s[e:])
-print("NeoDash home/palette patch applied; receiver transport untouched.")
+# GitHub's stable Android SDK channel currently exposes API 36, not API 37.
+# Keep this branch buildable on stable SDK images while leaving protocol/transport code unchanged.
+for build_file in root.rglob("*.gradle*"):
+    text = build_file.read_text(encoding="utf-8")
+    text = text.replace("version = release(37)", "version = release(36)")
+    text = text.replace("compileSdk = 37", "compileSdk = 36")
+    text = text.replace("targetSdk = 37", "targetSdk = 36")
+    build_file.write_text(text, encoding="utf-8")
+
+print("NeoDash home/palette patch applied; receiver transport untouched; compile/target SDK set to stable API 36.")
+
