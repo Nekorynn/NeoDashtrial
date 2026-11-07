@@ -60,6 +60,12 @@ jobs:
           sed -n '1,240p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/AndroidManifest.xml
           echo '--- Receiver and connection code references ---'
           grep -RniE 'DiPlay|DiAuto|receiver|ACTION_ACL|ACTION_USB|BluetoothDevice|startActivity' build-source/NeoDash-Sleek-v0.3.0/app/src/main --include='*.java' --include='*.kt' | head -n 180 || true
+          echo '--- NeoDashConnectionManager.java ---'
+          sed -n '1,280p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/NeoDashConnectionManager.java
+          echo '--- MainActivity receiver preferences and launch ---'
+          sed -n '620,780p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/MainActivity.java
+          echo '--- MainActivity connection lifecycle ---'
+          sed -n '1610,1715p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/MainActivity.java
       - name: Build debug APK
         run: gradle --no-daemon -p build-source/NeoDash-Sleek-v0.3.0 clean assembleDebug
 
