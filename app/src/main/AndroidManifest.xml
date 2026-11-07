@@ -3,10 +3,17 @@
  <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30"/>
  <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30"/>
  <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+ <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
  <application android:allowBackup="false" android:label="NeoLink" android:theme="@android:style/Theme.Material.NoActionBar">
   <activity android:name=".MainActivity" android:screenOrientation="landscape" android:exported="true">
    <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
    <intent-filter><action android:name="com.neodash.neolink.action.OPEN_RECEIVER"/><category android:name="android.intent.category.DEFAULT"/></intent-filter>
   </activity>
+  <receiver android:name=".BluetoothConnectionReceiver" android:exported="true">
+   <intent-filter>
+    <action android:name="android.bluetooth.device.action.ACL_CONNECTED"/>
+    <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED"/>
+   </intent-filter>
+  </receiver>
  </application>
 </manifest>
