@@ -66,6 +66,15 @@ jobs:
           sed -n '620,780p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/MainActivity.java
           echo '--- MainActivity connection lifecycle ---'
           sed -n '1610,1715p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/MainActivity.java
+          echo '--- NeoDashBootReceiver.java ---'
+          sed -n '1,180p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/NeoDashBootReceiver.java
+          echo '--- MainActivity imports, fields, and status method references ---'
+          sed -n '1,150p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/MainActivity.java
+          grep -nE 'getSystemStatusText|system_service_status|showSettings|addAppPreferenceRow\(body|NeoDashConnectionManager|launchMobileForDetectedPhone' build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/MainActivity.java | head -n 100
+          echo '--- MainActivity settings receiver rows ---'
+          sed -n '1400,1465p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/MainActivity.java
+          echo '--- Full manifest ---'
+          cat build-source/NeoDash-Sleek-v0.3.0/app/src/main/AndroidManifest.xml
       - name: Build debug APK
         run: gradle --no-daemon -p build-source/NeoDash-Sleek-v0.3.0 clean assembleDebug
 
