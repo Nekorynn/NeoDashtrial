@@ -20,12 +20,18 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkRequest;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public final class NeoLinkService extends Service {
     public static final String ACTION_BIND = "com.neodash.neolink.action.BIND";
@@ -50,6 +56,9 @@ public final class NeoLinkService extends Service {
     private String lastEvent = "service_started";
     private long updatedAt = System.currentTimeMillis();
     private boolean receiversRegistered;
+    private ConnectivityManager connectivityManager;
+    private ConnectivityManager.NetworkCallback wifiCallback;
+    private final Set<Network> wifiNetworks = new HashSet<>();
 
     private final BroadcastReceiver deviceReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
@@ -115,6 +124,7 @@ public final class NeoLinkService extends Service {
             return;
         }
         registerDeviceReceivers();
+        registerWifiCallback();
         publish();
     }
 
@@ -128,6 +138,34 @@ public final class NeoLinkService extends Service {
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(deviceReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
         else registerReceiver(deviceReceiver, filter);
         receiversRegistered = true;
+    }
+
+    private void registerWifiCallback() {
+        connectivityManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        if (connectivityManager == null) return;
+        wifiCallback = new ConnectivityManager.NetworkCallback() {
+            @Override public void onAvailable(Network network) {
+                synchronized (lock) { wifiNetworks.add(network); }
+                publish();
+            }
+            @Override public void onCapabilitiesChanged(Network network, NetworkCapabilities caps) {
+                synchronized (lock) {
+                    if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) wifiNetworks.add(network);
+                    else wifiNetworks.remove(network);
+                }
+                publish();
+            }
+            @Override public void onLost(Network network) {
+                synchronized (lock) { wifiNetworks.remove(network); }
+                publish();
+            }
+        };
+        try {
+            NetworkRequest request = new NetworkRequest.Builder()
+                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                .build();
+            connectivityManager.registerNetworkCallback(request, wifiCallback);
+        } catch (RuntimeException ignored) { wifiCallback = null; }
     }
 
     private BluetoothDevice getBluetoothDevice(Intent intent) {
@@ -182,6 +220,7 @@ public final class NeoLinkService extends Service {
                 root.put("schema_version", 1);
                 root.put("manager", "neolink");
                 root.put("service_state", "running");
+                root.put("wifi_network_available", !wifiNetworks.isEmpty());
                 connection.put("transport", transport);
                 connection.put("device_name", deviceName == null ? JSONObject.NULL : deviceName);
                 connection.put("platform", platform);
@@ -253,6 +292,10 @@ public final class NeoLinkService extends Service {
         if (receiversRegistered) {
             try { unregisterReceiver(deviceReceiver); } catch (IllegalArgumentException ignored) { }
         }
+        if (connectivityManager != null && wifiCallback != null) {
+            try { connectivityManager.unregisterNetworkCallback(wifiCallback); } catch (RuntimeException ignored) { }
+        }
+        synchronized (lock) { wifiNetworks.clear(); }
         clients.clear();
         super.onDestroy();
     }
