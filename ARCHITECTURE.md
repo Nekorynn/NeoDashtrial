@@ -4,8 +4,8 @@
 
 This repository is a monorepo containing independent Android applications:
 
-- `NeoDash/` — dashboard and boot experience.
-- `NeoLink/` — lightweight connection manager and receiver launcher.
+- NeoDash source — currently retained in `build-input/NeoDash-Sleek-v0.3.0-GitHub-Build-Source.zip` and expanded into a temporary Gradle project by CI.
+- `NeoLink/` — independent lightweight connection-manager application (receiver launch orchestration is a later migration stage).
 - `build-input/` — retained NeoDash source archive and deterministic patch scripts.
 - `.github/workflows/` — builds each APK independently.
 
@@ -36,6 +36,8 @@ NeoLink exposes an explicit, permission-protected Android bound service:
 - `MSG_GET_STATE = 1`: request a complete state snapshot.
 - `MSG_STATE = 2`: full state snapshot reply.
 - `MSG_EVENT = 3`: state-change event.
+- `MSG_REGISTER_CLIENT = 4`: subscribe to pushed state events.
+- `MSG_UNREGISTER_CLIENT = 5`: remove the client subscription.
 - Bundle field `state_json`: versioned JSON object.
 
 The service sends a complete snapshot immediately after binding and subsequent events when state changes. Consumers should bind once and react to events, not poll.
