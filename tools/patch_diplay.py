@@ -91,5 +91,13 @@ for build_file in root.rglob("*.gradle*"):
     text = text.replace("targetSdk = 37", "targetSdk = 36")
     build_file.write_text(text, encoding="utf-8")
 
-print("NeoDash home/palette patch applied; receiver transport untouched; compile/target SDK set to stable API 36.")
+# AndroidX Core 1.19 requires compileSdk 37. Pin Core 1.17 for stable API 36 CI.
+catalog = root / "gradle/libs.versions.toml"
+if catalog.exists():
+    catalog_text = catalog.read_text(encoding="utf-8")
+    catalog_text = catalog_text.replace('coreKtx = "1.19.0"', 'coreKtx = "1.17.0"')
+    catalog.write_text(catalog_text, encoding="utf-8")
+
+print("NeoDash home/palette patch applied; receiver transport untouched; stable API 36 compatibility selected.")
+
 
