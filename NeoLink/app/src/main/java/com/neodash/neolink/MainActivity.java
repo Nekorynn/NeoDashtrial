@@ -147,6 +147,12 @@ public final class MainActivity extends Activity {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         iosSpinner.setAdapter(adapter);
         androidSpinner.setAdapter(adapter);
+        String savedIos = getSharedPreferences("receivers", MODE_PRIVATE).getString("ios_package", "");
+        String savedAndroid = getSharedPreferences("receivers", MODE_PRIVATE).getString("android_package", "");
+        int iosIndex = packages.indexOf(savedIos);
+        int androidIndex = packages.indexOf(savedAndroid);
+        iosSpinner.setSelection(Math.max(0, iosIndex));
+        androidSpinner.setSelection(Math.max(0, androidIndex));
     }
 
     private void saveSelections() {
