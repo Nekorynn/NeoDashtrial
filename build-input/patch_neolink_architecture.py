@@ -273,7 +273,8 @@ helpers = r'''
                 String link = connection.optString("link_state", "unknown").toUpperCase(Locale.ROOT);
                 String platform = connection.optString("platform", "unknown").toUpperCase(Locale.ROOT);
                 String transport = connection.optString("transport", "none").toUpperCase(Locale.ROOT);
-                neoLinkSummary = "NEOLINK: " + link + " / " + platform + " / " + transport;
+                boolean wifi = root.optBoolean("wifi_network_available", false);
+                neoLinkSummary = "NEOLINK: " + link + " / " + platform + " / " + transport + " / WIFI " + (wifi ? "ON" : "OFF");
             }
         } catch (Exception ignored) {
             neoLinkSummary = "NEOLINK: STATE UNAVAILABLE";
