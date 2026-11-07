@@ -1,0 +1,37 @@
+name: Build Diauto APK
+on:
+  push:
+    branches: [work/diauto-openheadunit]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: ''
+      - name: Install Android SDK
+        run: sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+      - name: Fetch pinned Open Headunit
+        run: |
+          git clone https://github.com/andreknieriem/open-headunit.git upstream
+          git -C upstream checkout ae74788d8312dd7a735775ddc21370f1741a7af1
+      - name: Apply Diauto branding
+        run: python3 tools/patch_diauto.py upstream
+      - name: Test and build
+        working-directory: upstream
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon :app:testGithubDebugUnitTest :app:assembleGithubDebug --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Diauto-debug
+          path: upstream/app/build/outputs/apk/github/debug/*.apk
+          if-no-files-found: error
