@@ -1,4 +1,4 @@
-name: Build NeoDash 0.3.1 Chrome Neon APK
+name: Build NeoDash 0.3.2 Cyberpunk Dashboard APK
 
 on:
   push:
@@ -46,8 +46,13 @@ jobs:
           unzip -tq build-input/NeoDash-Sleek-v0.3.0-GitHub-Build-Source.zip
           unzip -q build-input/NeoDash-Sleek-v0.3.0-GitHub-Build-Source.zip -d build-source
 
-      - name: Apply Chrome + Neon icon pack
+      - name: Apply Chrome + Neon app icon pack
         run: python build-input/patch_chrome_neon.py build-source/NeoDash-Sleek-v0.3.0
+
+      - name: Apply NeoDash 0.3.2 onboarding and dashboard
+        run: |
+          gzip -dc build-input/patch_neodash_032.py.gz > /tmp/patch_neodash_032.py
+          python /tmp/patch_neodash_032.py build-source/NeoDash-Sleek-v0.3.0
 
       - name: Build debug APK
         run: gradle --no-daemon -p build-source/NeoDash-Sleek-v0.3.0 clean assembleDebug
@@ -56,13 +61,13 @@ jobs:
         run: |
           APK="build-source/NeoDash-Sleek-v0.3.0/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
-          cp "$APK" NeoDash-0.3.1-Chrome-Neon-debug.apk
+          cp "$APK" NeoDash-0.3.2-Cyberpunk-Dashboard-debug.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NeoDash-0.3.1-Chrome-Neon-Icons-debug
-          path: NeoDash-0.3.1-Chrome-Neon-debug.apk
+          name: NeoDash-0.3.2-Cyberpunk-Dashboard-debug
+          path: NeoDash-0.3.2-Cyberpunk-Dashboard-debug.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -70,12 +75,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view v0.3.1 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload v0.3.1 NeoDash-0.3.1-Chrome-Neon-debug.apk --repo "$GITHUB_REPOSITORY" --clobber
+          if gh release view v0.3.2 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload v0.3.2 NeoDash-0.3.2-Cyberpunk-Dashboard-debug.apk --repo "$GITHUB_REPOSITORY" --clobber
           else
-            gh release create v0.3.1 NeoDash-0.3.1-Chrome-Neon-debug.apk \
+            gh release create v0.3.2 NeoDash-0.3.2-Cyberpunk-Dashboard-debug.apk \
               --repo "$GITHUB_REPOSITORY" \
-              --title "NeoDash 0.3.1 - Chrome + Neon" \
-              --notes "NeoDash 0.3.1 preview APK with Chrome + Neon icon pack. Debug-signed build for testing." \
+              --title "NeoDash 0.3.2 - Blue Chrome Cyberpunk" \
+              --notes "NeoDash 0.3.2 preview APK. Adds first-launch permission onboarding, configurable map and phone receiver apps, remembered media source, two-pane dashboard and blue-chrome cyberpunk styling. The embedded map pane uses OpenStreetMap; the selected installed map app is opened for full navigation. Debug-signed build for testing." \
               --target "$GITHUB_SHA"
           fi
