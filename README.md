@@ -1,45 +1,43 @@
-# NeoDash 0.3.2 — Blue Chrome Cyberpunk
+# NeoDash + NeoLink — Architecture Preview 0.4.0
 
-**The Future Is in Drive.**
+**One public repository. Two independent Android applications.**
 
-A lightweight Android automotive launcher preview for landscape Android phones and head units.
+This branch introduces the separation of responsibilities approved for NeoDash.
 
-## Download
+## Projects and APKs
 
-[Download NeoDash 0.3.2 APK](https://github.com/Nekorynn/NeoDashtrial/releases/download/v0.3.2/NeoDash-0.3.2-Cyberpunk-Dashboard-debug.apk)
+- **NeoDash** — dashboard and boot starter. The existing 0.3.2 dashboard source is currently assembled from the retained source archive and patch pipeline in CI.
+- **NeoLink** — a separate Android project in `NeoLink/`, with its own package ID (`com.neodash.neolink`) and independently built APK.
+- **DiPlay** — external iPhone CarPlay receiver; not included or modified.
+- **OpenHeadunit** — external Android Auto receiver; not included or modified.
 
-[View all releases](https://github.com/Nekorynn/NeoDashtrial/releases)
+The two APKs are built separately by GitHub Actions. NeoLink is currently an architecture preview, not yet an end-to-end projection manager.
 
-This is a debug-signed preview APK, not a Play Store release. The app uses a separate debug package suffix so it can be installed alongside the previous NeoDash preview builds.
+## NeoLink preview currently implements
 
-## What's new in 0.3.2
+- Separate app and receiver-selection screen.
+- Saved iOS and Android receiver package choices.
+- Foreground connection-manager service with a boot-start attempt, subject to Android permission and OEM background-start rules.
+- Bluetooth ACL and USB attach/detach event capture.
+- A permission-protected Messenger service contract with versioned JSON state snapshots and event delivery.
+- Conservative classification: Bluetooth is shown as a paired candidate, not as an active projection session. Apple USB vendor ID may identify some iPhones; ambiguous devices remain unknown.
 
-- First-launch setup blocks entry to the dashboard until the selected core permissions are granted: Location/GPS, Nearby Devices/Bluetooth on Android 12+, and Notifications on Android 13+.
-- Setup asks the user to choose installed defaults for the map app, iOS receiver app, Android Auto receiver app and local media player.
-- Settings allows all app defaults and the last-used media source to be changed later.
-- Home dashboard is split into two panes: clock and media on the left; four app shortcuts on the right with a permanent next-page arrow.
-- Media sources: Local, Bluetooth and Spotify. NeoDash remembers the last source selected. Transport buttons send media-key events to the active Android media session.
-- Map mode displays an embedded OpenStreetMap pane on the left and clock/media on the right. The selected installed map app opens for full navigation.
-- Bottom navigation uses Mobile instead of CarPlay. A valid receiver-session event launches the configured DiPlay or DiAuto app without a confirmation prompt.
-- Blue-chrome typography and graphite panels are primary, with restrained yellow, magenta and cyan accents.
+## Not yet implemented / not yet verified
 
-## Map embedding note
+- NeoDash's Messenger client and connection-status UI.
+- Full Wi-Fi peer discovery and receiver-specific session handshakes.
+- Automatic receiver launching, reconnect/timeout policy, multi-phone arbitration and active-session lock.
+- Removing the legacy receiver-selection/launch path from the existing NeoDash 0.3.2 source.
+- Physical testing on the target head unit.
 
-Android does not provide a standard public API for embedding arbitrary third-party map app screens inside another app's panel. The embedded map surface therefore uses OpenStreetMap; the installed map app selected in setup is used when opening full navigation.
+These items are intentionally staged. The existing NeoDash receiver code remains in place until the new service interface is integrated and verified, avoiding a regression where neither app can launch the receiver.
 
-## Compatibility and permissions
+## Build
 
-- Landscape-first; minimum SDK 24 (Android 7.0).
-- The setup wizard requests precise location, Nearby Devices permissions where applicable, and notifications where applicable.
-- The Mobile auto-launch feature relies on a valid receiver-session signal from the selected DiPlay/DiAuto receiver. A generic Bluetooth pairing by itself does not identify a phone OS reliably.
-- Bluetooth audio output is controlled by Android; the Bluetooth media source uses the selected media player and current system audio route.
+GitHub Actions builds:
+- `NeoDash-0.3.2-Cyberpunk-Dashboard-debug.apk`
+- `NeoLink-0.1.0-Architecture-Preview-debug.apk`
 
-## Build locally
+Open the [Actions page](https://github.com/Nekorynn/NeoDashtrial/actions) and select the latest run on this branch. Artifacts are debug-signed previews for testing, not Play Store releases.
 
-Requires JDK 17, Android SDK 34, Gradle 8.7, Python 3.12 and Pillow.
-
-The GitHub Actions workflow extracts the bundled NeoDash source archive, applies the Chrome + Neon icon pack, applies the 0.3.2 dashboard/setup patch and builds the assembleDebug variant.
-
-## Palette
-
-Graphite #070C13 · Blue chrome #199BEE · Ice cyan #53CFFF · Secondary accents: electric yellow, neon magenta and cyan.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for service ownership, message IDs, state schema, migration order and Android platform constraints.
