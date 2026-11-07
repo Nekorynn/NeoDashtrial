@@ -1,0 +1,35 @@
+name: Build DiPlay NeoDash edition
+on:
+  push:
+    branches: [work/diplay-neodash-reskin]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK and NDK
+        run: sdkmanager "platforms;android-37" "build-tools;36.0.0" "platform-tools" "ndk;28.2.13676358"
+      - name: Fetch pinned upstream
+        run: |
+          git clone https://github.com/shihabal3amri/DiPlay.git upstream
+          git -C upstream checkout 615b32ce0b40cd0b99ce94ba23a512001553684f
+      - name: Apply NeoDash styling
+        run: python3 tools/patch_diplay.py upstream
+      - name: Test and build
+        working-directory: upstream
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon :shared:testDebugUnitTest :common:testDebugUnitTest :mobile:lintDebug :mobile:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DiPlay-NeoDash-debug-source-build
+          path: upstream/mobile/build/outputs/apk/debug/mobile-debug.apk
+          if-no-files-found: error
