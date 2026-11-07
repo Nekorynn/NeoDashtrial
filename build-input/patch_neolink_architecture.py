@@ -319,7 +319,7 @@ MANIFEST.write_text(manifest, encoding="utf-8")
 gradle_file = ROOT / "app/build.gradle"
 gradle_text = gradle_file.read_text(encoding="utf-8")
 gradle_text, code_count = re.subn(r'(versionCode\s*=?\s*)\d+', r'\g<1>40', gradle_text, count=1)
-gradle_text, name_count = re.subn(r'(versionName\s*=?\s*)[\"\']([^\"\']+)[\"\']', r'\g<1>\"0.4.0\"', gradle_text, count=1)
+gradle_text, name_count = re.subn(r'(versionName\s*=?\s*)["\']([^"\']+)["\']', r'\g<1>"0.4.0"', gradle_text, count=1)
 if code_count != 1 or name_count != 1:
     raise SystemExit("Could not set NeoDash 0.4.0 versionCode/versionName")
 gradle_file.write_text(gradle_text, encoding="utf-8")
