@@ -1,8 +1,8 @@
-name: Build NeoDash 0.3.2 Cyberpunk Dashboard APK
+name: Build NeoDash and NeoLink APKs
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'architecture/**']
   workflow_dispatch:
 
 permissions:
@@ -71,7 +71,25 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Build independent NeoLink APK
+        run: gradle --no-daemon -p NeoLink clean assembleDebug
+
+      - name: Verify and name NeoLink APK
+        run: |
+          APK="NeoLink/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          cp "$APK" NeoLink-0.1.0-Architecture-Preview-debug.apk
+
+      - name: Upload NeoLink APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeoLink-0.1.0-Architecture-Preview-debug
+          path: NeoLink-0.1.0-Architecture-Preview-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Publish APK to GitHub Releases
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
