@@ -81,6 +81,7 @@ OLD_SERVICE.unlink()
 # --- NeoDash UI: receiver app setup and automatic launching move to NeoLink. ---
 main = MAIN.read_text(encoding="utf-8")
 main = main.replace("NeoDashConnectionManager", "NeoDashSystemStatusService")
+main = main.replace('TextView serviceStatus = label(getSystemStatusText(), 11, MUTED, false);', 'TextView serviceStatus = label(getSystemStatusText() + "  |  " + neoLinkSummary, 11, MUTED, false);')
 main = main.replace("import android.content.Context;\n",
                     "import android.content.Context;\nimport android.content.ComponentName;\nimport android.content.ServiceConnection;\n")
 main = main.replace("import android.os.Handler;\n",
