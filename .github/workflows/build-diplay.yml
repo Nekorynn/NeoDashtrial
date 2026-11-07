@@ -14,7 +14,9 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: ''
       - name: Install Android SDK and NDK
         run: sdkmanager "platforms;android-37" "build-tools;36.0.0" "platform-tools" "ndk;28.2.13676358"
       - name: Fetch pinned upstream
