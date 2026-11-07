@@ -185,12 +185,12 @@ public final class NeoLinkService extends Service {
 
     private boolean handleMessage(Message message) {
         if (message.what == MSG_REGISTER_CLIENT) {
-            if (message.replyTo != null && !clients.contains(message.replyTo)) clients.add(message.replyTo);
+            if (message.replyTo != null) synchronized (clients) { if (!clients.contains(message.replyTo)) clients.add(message.replyTo); }
             sendSnapshot(message.replyTo, MSG_STATE);
             return true;
         }
         if (message.what == MSG_UNREGISTER_CLIENT) {
-            if (message.replyTo != null) clients.remove(message.replyTo);
+            if (message.replyTo != null) synchronized (clients) { clients.remove(message.replyTo); }
             return true;
         }
         if (message.what == MSG_GET_STATE) {
@@ -247,7 +247,9 @@ public final class NeoLinkService extends Service {
         }
         Bundle data = new Bundle();
         data.putString(EXTRA_STATE_JSON, snapshot().toString());
-        for (Messenger client : new ArrayList<>(clients)) {
+        List<Messenger> recipients;
+        synchronized (clients) { recipients = new ArrayList<>(clients); }
+        for (Messenger client : recipients) {
             try {
                 Message event = Message.obtain(null, MSG_EVENT);
                 event.setData(data);
@@ -296,7 +298,7 @@ public final class NeoLinkService extends Service {
             try { connectivityManager.unregisterNetworkCallback(wifiCallback); } catch (RuntimeException ignored) { }
         }
         synchronized (lock) { wifiNetworks.clear(); }
-        clients.clear();
+        synchronized (clients) { clients.clear(); }
         super.onDestroy();
     }
 }
