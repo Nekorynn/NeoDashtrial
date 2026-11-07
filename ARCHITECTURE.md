@@ -40,7 +40,7 @@ NeoLink exposes an explicit, permission-protected Android bound service:
 - `MSG_UNREGISTER_CLIENT = 5`: remove the client subscription.
 - Bundle field `state_json`: versioned JSON object.
 
-The service sends a complete snapshot immediately after binding and subsequent events when state changes. Consumers should bind once and react to events, not poll.
+The service sends a complete snapshot immediately after client registration and subsequent events when state changes, including Bluetooth, USB and Wi-Fi network availability changes. Consumers should bind once and react to events, not poll. Wi-Fi network availability is not proof of a phone or projection session.
 
 State schema v1:
 
@@ -49,6 +49,7 @@ State schema v1:
   "schema_version": 1,
   "manager": "neolink",
   "service_state": "running",
+  "wifi_network_available": false,
   "connection": {
     "transport": "none|bluetooth|usb|wifi|unknown",
     "device_name": null,
@@ -68,15 +69,22 @@ State schema v1:
 
 A Bluetooth ACL connection is only a `paired_candidate`; it must never be represented as an active CarPlay/Android Auto session. A receiver launch is `launch_requested`; only a receiver-provided callback/API can establish `active`.
 
-## Migration safety
+## Migration status and safety
 
-The existing NeoDash 0.3.2 build pipeline currently applies its dashboard patch to a bundled source archive. The source archive is not expanded in the repository, so removing its old receiver-selection/launch code safely requires inspecting the expanded source in CI first. Until that inspection and the Messenger client integration are verified, the legacy launch path is retained rather than risking a broken dashboard or silently removing working functionality.
+The source archive is expanded in CI, where the architecture patch now:
+1. Renames the old NeoDash connection service to a system-status/time-sync service.
+2. Removes USB phone events, Bluetooth connection-state events and receiver-session handling from that NeoDash service, while retaining general Bluetooth/Wi-Fi/GPS/time status.
+3. Removes receiver-app selection and automatic receiver-launch methods from NeoDash.
+4. Adds a NeoDash Messenger client that binds to NeoLink, subscribes to pushed state events and displays NeoLink status in the system-status panel.
+5. Adds a NeoLink settings entry point from the dashboard.
 
-This branch adds the independent NeoLink application and service contract as the first migration stage. It does not yet claim end-to-end phone projection or automatic receiver launching. The next stage must:
-1. Integrate a NeoDash Messenger client and visible connection state.
-2. Verify cold boot, warm boot, NeoLink unavailable, service restart and reconnect.
-3. Move receiver selection and launch ownership to NeoLink.
-4. Remove NeoDash's legacy receiver-launch code only after the above checks pass.
+The NeoDash and NeoLink APKs are built independently. The old 0.3.2 baseline on `main` is not modified by this architecture branch. The current implementation does not claim end-to-end phone projection or automatic receiver launching.
+
+Next stage:
+1. Add reliable phone platform/session identification for USB, Bluetooth and wireless projection.
+2. Implement receiver launching and active-session reporting in NeoLink only after a trusted platform/session signal is available.
+3. Add multiple-phone arbitration, active-session lock, switch/disconnect confirmation, reconnect and timeout handling.
+4. Verify cold boot, warm boot, NeoLink unavailable, service restart, disconnect/reconnect and multiple-phone scenarios on the target head unit.
 
 ## Android platform constraints
 
