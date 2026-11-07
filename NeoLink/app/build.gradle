@@ -1,0 +1,14 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.neodash.neolink'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.neodash.neolink'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '0.1.0-architecture-preview'
+    }
+}
