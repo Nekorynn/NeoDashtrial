@@ -255,7 +255,7 @@ public final class NeoLinkService extends Service {
                 event.setData(data);
                 client.send(event);
             } catch (RemoteException dead) {
-                clients.remove(client);
+                synchronized (clients) { clients.remove(client); }
             }
         }
     }
