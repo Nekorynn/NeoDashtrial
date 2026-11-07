@@ -43,3 +43,7 @@ The GitHub Actions workflow extracts the bundled NeoDash source archive, applies
 ## Palette
 
 Graphite #070C13 · Blue chrome #199BEE · Ice cyan #53CFFF · Secondary accents: electric yellow, neon magenta and cyan.
+
+## NeoLink handoff branch
+
+The `work/neodash-neolink-handoff` branch adds a **MOBILE** tile that opens NeoLink. NeoDash remains the dashboard and boot starter; NeoLink owns paired-phone assignment and event-driven receiver handoff; DiPlay and Diauto own projection.
