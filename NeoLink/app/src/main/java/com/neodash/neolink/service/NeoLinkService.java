@@ -32,6 +32,8 @@ public final class NeoLinkService extends Service {
     public static final int MSG_GET_STATE = 1;
     public static final int MSG_STATE = 2;
     public static final int MSG_EVENT = 3;
+    public static final int MSG_REGISTER_CLIENT = 4;
+    public static final int MSG_UNREGISTER_CLIENT = 5;
     public static final String EXTRA_STATE_JSON = "state_json";
 
     private static final String CHANNEL_ID = "neolink_connection";
@@ -102,10 +104,15 @@ public final class NeoLinkService extends Service {
         super.onCreate();
         createNotificationChannel();
         Notification notification = buildNotification();
-        if (Build.VERSION.SDK_INT >= 29) {
-            startForeground(41, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
-        } else {
-            startForeground(41, notification);
+        try {
+            if (Build.VERSION.SDK_INT >= 29) {
+                startForeground(41, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
+            } else {
+                startForeground(41, notification);
+            }
+        } catch (SecurityException denied) {
+            stopSelf();
+            return;
         }
         registerDeviceReceivers();
         publish();
@@ -139,19 +146,31 @@ public final class NeoLinkService extends Service {
     }
 
     private boolean handleMessage(Message message) {
+        if (message.what == MSG_REGISTER_CLIENT) {
+            if (message.replyTo != null && !clients.contains(message.replyTo)) clients.add(message.replyTo);
+            sendSnapshot(message.replyTo, MSG_STATE);
+            return true;
+        }
+        if (message.what == MSG_UNREGISTER_CLIENT) {
+            if (message.replyTo != null) clients.remove(message.replyTo);
+            return true;
+        }
         if (message.what == MSG_GET_STATE) {
-            if (message.replyTo != null) {
-                try {
-                    Message reply = Message.obtain(null, MSG_STATE);
-                    Bundle data = new Bundle();
-                    data.putString(EXTRA_STATE_JSON, snapshot().toString());
-                    reply.setData(data);
-                    message.replyTo.send(reply);
-                } catch (RemoteException ignored) { }
-            }
+            sendSnapshot(message.replyTo, MSG_STATE);
             return true;
         }
         return false;
+    }
+
+    private void sendSnapshot(Messenger target, int what) {
+        if (target == null) return;
+        try {
+            Message reply = Message.obtain(null, what);
+            Bundle data = new Bundle();
+            data.putString(EXTRA_STATE_JSON, snapshot().toString());
+            reply.setData(data);
+            target.send(reply);
+        } catch (RemoteException ignored) { }
     }
 
     private JSONObject snapshot() {
@@ -168,8 +187,8 @@ public final class NeoLinkService extends Service {
                 connection.put("platform", platform);
                 connection.put("link_state", linkState);
                 connection.put("projection_state", projectionState);
-                receiver.put("ios_package", getPreferences(0).getString("ios_package", null));
-                receiver.put("android_package", getPreferences(0).getString("android_package", null));
+                receiver.put("ios_package", getSharedPreferences("receivers", MODE_PRIVATE).getString("ios_package", null));
+                receiver.put("android_package", getSharedPreferences("receivers", MODE_PRIVATE).getString("android_package", null));
                 receiver.put("selected_package", platform.equals("ios")
                     ? getPreferences(0).getString("ios_package", null)
                     : platform.equals("android") ? getPreferences(0).getString("android_package", null) : null);
@@ -185,7 +204,7 @@ public final class NeoLinkService extends Service {
     private void publish() {
         synchronized (lock) {
             updatedAt = System.currentTimeMillis();
-            getPreferences(0).edit().putString("last_state", snapshot().toString()).apply();
+            getSharedPreferences("neolink_state", MODE_PRIVATE).edit().putString("last_state", snapshot().toString()).apply();
         }
         Bundle data = new Bundle();
         data.putString(EXTRA_STATE_JSON, snapshot().toString());
@@ -227,11 +246,6 @@ public final class NeoLinkService extends Service {
     }
 
     @Override public IBinder onBind(Intent intent) { return messenger.getBinder(); }
-
-    public void addClient(Messenger client) {
-        if (client == null || clients.contains(client)) return;
-        clients.add(client);
-    }
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) { return START_STICKY; }
 
