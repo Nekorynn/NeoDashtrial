@@ -190,8 +190,8 @@ public final class NeoLinkService extends Service {
                 receiver.put("ios_package", getSharedPreferences("receivers", MODE_PRIVATE).getString("ios_package", null));
                 receiver.put("android_package", getSharedPreferences("receivers", MODE_PRIVATE).getString("android_package", null));
                 receiver.put("selected_package", platform.equals("ios")
-                    ? getPreferences(0).getString("ios_package", null)
-                    : platform.equals("android") ? getPreferences(0).getString("android_package", null) : null);
+                    ? getSharedPreferences("receivers", MODE_PRIVATE).getString("ios_package", null)
+                    : platform.equals("android") ? getSharedPreferences("receivers", MODE_PRIVATE).getString("android_package", null) : null);
                 root.put("connection", connection);
                 root.put("receiver", receiver);
                 root.put("last_event", lastEvent);
