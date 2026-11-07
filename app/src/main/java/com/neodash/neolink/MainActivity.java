@@ -22,7 +22,9 @@ public final class MainActivity extends Activity {
  @Override public void onCreate(Bundle b) {
   super.onCreate(b); prefs=getSharedPreferences("neolink",MODE_PRIVATE);
   if(ACTION_OPEN.equals(getIntent().getAction())) { String r=getIntent().getStringExtra("receiver"); if("diplay".equalsIgnoreCase(r)){launch(DIPLAY);finish();return;} if("diauto".equalsIgnoreCase(r)){launch(DIAUTO);finish();return;} }
-  buildUi();\n  if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED) requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},REQ_NOTIF);\n  else refresh();
+  buildUi();
+  if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED) requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},REQ_NOTIF);
+  else refresh();
  }
  private void buildUi(){
   LinearLayout root=new LinearLayout(this); root.setOrientation(1); root.setPadding(dp(22),dp(16),dp(22),dp(16)); root.setBackgroundColor(BG);
