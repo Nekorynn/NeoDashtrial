@@ -48,7 +48,8 @@ public final class MainActivity extends Activity {
     private final ServiceConnection connection = new ServiceConnection() {
         @Override public void onServiceConnected(ComponentName name, IBinder binder) {
             service = new Messenger(binder);
-            requestState();
+            try { Message register = Message.obtain(null, NeoLinkService.MSG_REGISTER_CLIENT); register.replyTo = client; service.send(register); }
+            catch (RemoteException ignored) { stateText.setText("Unable to subscribe to NeoLink events"); }
         }
         @Override public void onServiceDisconnected(ComponentName name) { service = null; stateText.setText("NeoLink service disconnected"); }
     };
@@ -57,16 +58,33 @@ public final class MainActivity extends Activity {
         super.onCreate(saved);
         buildUi();
         requestPermissionsIfNeeded();
-        bindService(new Intent(this, NeoLinkService.class), connection, Context.BIND_AUTO_CREATE);
     }
 
     private void requestPermissionsIfNeeded() {
         if (Build.VERSION.SDK_INT >= 31 && checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.BLUETOOTH_CONNECT}, 10);
+            return;
         }
+        startManager();
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 11);
         }
+    }
+
+    private void startManager() {
+        Intent manager = new Intent(this, NeoLinkService.class);
+        try {
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(manager); else startService(manager);
+            bindService(manager, connection, Context.BIND_AUTO_CREATE);
+        } catch (RuntimeException denied) {
+            stateText.setText("NeoLink could not start. Check Bluetooth permission and Android background-start settings.");
+        }
+    }
+
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 10 && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) startManager();
+        else if (requestCode == 10) stateText.setText("Bluetooth permission is required for connection monitoring.");
     }
 
     private void buildUi() {
@@ -166,7 +184,8 @@ public final class MainActivity extends Activity {
 
     @Override protected void onDestroy() {
         if (service != null) {
-            try { service.send(Message.obtain(null, NeoLinkService.MSG_GET_STATE)); } catch (RemoteException ignored) { }
+            try { Message unregister = Message.obtain(null, NeoLinkService.MSG_UNREGISTER_CLIENT); unregister.replyTo = client; service.send(unregister); }
+            catch (RemoteException ignored) { }
         }
         try { unbindService(connection); } catch (IllegalArgumentException ignored) { }
         super.onDestroy();
