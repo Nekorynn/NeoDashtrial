@@ -64,8 +64,8 @@ jobs:
           MAIN="build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/MainActivity.java"
           SERVICE="build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/NeoDashSystemStatusService.java"
           test -s "$SERVICE"
-          ! grep -q 'launchMobileForDetectedPhone\|ACTION_RECEIVER_SESSION\|ios_app_package\|android_app_package' "$MAIN"
-          ! grep -q 'ACTION_RECEIVER_SESSION\|receiverSessionActive\|ACTION_USB_DEVICE_ATTACHED\|ACTION_CONNECTION_STATE_CHANGED' "$SERVICE"
+          ! grep -Eq 'launchMobileForDetectedPhone|ACTION_RECEIVER_SESSION|ios_app_package|android_app_package' "$MAIN"
+          ! grep -Eq 'ACTION_RECEIVER_SESSION|receiverSessionActive|ACTION_USB_DEVICE_ATTACHED|ACTION_CONNECTION_STATE_CHANGED' "$SERVICE"
           grep -q 'NEOLINK_MSG_REGISTER' "$MAIN"
           grep -q 'NEOLINK_MSG_EVENT' "$MAIN"
       - name: Build debug APK
