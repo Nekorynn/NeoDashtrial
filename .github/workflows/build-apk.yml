@@ -54,37 +54,48 @@ jobs:
           gzip -dc build-input/patch_neodash_032.py.gz > /tmp/patch_neodash_032.py
           python /tmp/patch_neodash_032.py build-source/NeoDash-Sleek-v0.3.0
 
-      - name: Inspect legacy NeoDash receiver integration before migration
+      - name: Apply NeoDash and NeoLink architecture separation
+        if: startsWith(github.ref, 'refs/heads/architecture/')
+        run: python build-input/patch_neolink_architecture.py
+
+      - name: Verify architecture boundaries
+        if: startsWith(github.ref, 'refs/heads/architecture/')
         run: |
-          echo '--- Android manifest ---'
-          sed -n '1,240p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/AndroidManifest.xml
-          echo '--- Receiver and connection code references ---'
-          grep -RniE 'DiPlay|DiAuto|receiver|ACTION_ACL|ACTION_USB|BluetoothDevice|startActivity' build-source/NeoDash-Sleek-v0.3.0/app/src/main --include='*.java' --include='*.kt' | head -n 180 || true
-          echo '--- NeoDashConnectionManager.java ---'
-          sed -n '1,280p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/NeoDashConnectionManager.java
-          echo '--- MainActivity receiver preferences and launch ---'
-          sed -n '620,780p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/MainActivity.java
-          echo '--- MainActivity connection lifecycle ---'
-          sed -n '1610,1715p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/MainActivity.java
-          echo '--- NeoDashBootReceiver.java ---'
-          sed -n '1,180p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/NeoDashBootReceiver.java
-          echo '--- MainActivity imports, fields, and status method references ---'
-          sed -n '1,150p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/MainActivity.java
-          grep -nE 'getSystemStatusText|system_service_status|showSettings|addAppPreferenceRow\(body|NeoDashConnectionManager|launchMobileForDetectedPhone' build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/MainActivity.java | head -n 100
-          echo '--- MainActivity settings receiver rows ---'
-          sed -n '1400,1465p' build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/MainActivity.java
-          echo '--- Full manifest ---'
-          cat build-source/NeoDash-Sleek-v0.3.0/app/src/main/AndroidManifest.xml
+          MAIN="build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/MainActivity.java"
+          SERVICE="build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/NeoDashSystemStatusService.java"
+          test -s "$SERVICE"
+          ! grep -q 'launchMobileForDetectedPhone\|ACTION_RECEIVER_SESSION\|ios_app_package\|android_app_package' "$MAIN"
+          ! grep -q 'ACTION_RECEIVER_SESSION\|receiverSessionActive\|ACTION_USB_DEVICE_ATTACHED\|ACTION_CONNECTION_STATE_CHANGED' "$SERVICE"
+          grep -q 'NEOLINK_MSG_REGISTER' "$MAIN"
+          grep -q 'NEOLINK_MSG_EVENT' "$MAIN"
       - name: Build debug APK
         run: gradle --no-daemon -p build-source/NeoDash-Sleek-v0.3.0 clean assembleDebug
 
-      - name: Verify and name APK
+      - name: Verify and name NeoDash 0.4.0 architecture APK
+        if: startsWith(github.ref, 'refs/heads/architecture/')
+        run: |
+          APK="build-source/NeoDash-Sleek-v0.3.0/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          cp "$APK" NeoDash-0.4.0-Architecture-Preview-debug.apk
+
+      - name: Upload NeoDash 0.4.0 architecture artifact
+        if: startsWith(github.ref, 'refs/heads/architecture/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeoDash-0.4.0-Architecture-Preview-debug
+          path: NeoDash-0.4.0-Architecture-Preview-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Verify and name NeoDash 0.3.2 stable APK
+        if: github.ref == 'refs/heads/main'
         run: |
           APK="build-source/NeoDash-Sleek-v0.3.0/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
           cp "$APK" NeoDash-0.3.2-Cyberpunk-Dashboard-debug.apk
 
-      - name: Upload APK artifact
+      - name: Upload NeoDash 0.3.2 stable artifact
+        if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
           name: NeoDash-0.3.2-Cyberpunk-Dashboard-debug
@@ -93,15 +104,18 @@ jobs:
           retention-days: 30
 
       - name: Build independent NeoLink APK
+        if: startsWith(github.ref, 'refs/heads/architecture/')
         run: gradle --no-daemon -p NeoLink clean assembleDebug
 
       - name: Verify and name NeoLink APK
+        if: startsWith(github.ref, 'refs/heads/architecture/')
         run: |
           APK="NeoLink/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
           cp "$APK" NeoLink-0.1.0-Architecture-Preview-debug.apk
 
       - name: Upload NeoLink APK artifact
+        if: startsWith(github.ref, 'refs/heads/architecture/')
         uses: actions/upload-artifact@v4
         with:
           name: NeoLink-0.1.0-Architecture-Preview-debug
