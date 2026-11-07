@@ -1,10 +1,12 @@
 name: Build NeoDash 0.3.1 APK
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -32,10 +34,25 @@ jobs:
         run: |
           python build-input/patch_chrome_neon.py .
           gradle --no-daemon clean assembleDebug
-      - name: Verify APK
-        run: test -s app/build/outputs/apk/debug/app-debug.apk
+      - name: Verify and name APK
+        run: |
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk NeoDash-0.3.1-Chrome-Neon-debug.apk
       - uses: actions/upload-artifact@v4
         with:
           name: NeoDash-0.3.1-Chrome-Neon-Icons-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: NeoDash-0.3.1-Chrome-Neon-debug.apk
           retention-days: 30
+      - name: Publish APK to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v0.3.1 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload v0.3.1 NeoDash-0.3.1-Chrome-Neon-debug.apk --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create v0.3.1 NeoDash-0.3.1-Chrome-Neon-debug.apk \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "NeoDash 0.3.1 - Chrome + Neon" \
+              --notes "NeoDash 0.3.1 preview APK with Chrome + Neon icon pack. Debug-signed build for testing; install by enabling APK installation from your file manager." \
+              --target "$GITHUB_SHA"
+          fi
