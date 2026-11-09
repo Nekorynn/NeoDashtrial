@@ -81,6 +81,32 @@ jobs:
                       print(f"{i+1}: {lines[i]}")
                       shown.add(i)
           PY
+      - name: Diagnose installed-app drawer implementation
+        if: startsWith(github.ref, 'refs/heads/architecture/')
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path("build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/MainActivity.java")
+          lines = p.read_text(encoding="utf-8").splitlines()
+          pattern = re.compile(r"getInstalled|queryIntent|CATEGORY_LAUNCHER|loadIcon|loadLabel|ALL APPS|allApps|appGrid|app_grid|buildApps|showApps|appsContainer|appsGrid|installedApps|app drawer", re.I)
+          hits = [i for i, line in enumerate(lines) if pattern.search(line)]
+          print("APP DRAWER MATCHES:", len(hits))
+          shown = set()
+          for hit in hits:
+              start, end = max(0, hit - 12), min(len(lines), hit + 25)
+              if any(i in shown for i in range(start, end)):
+                  continue
+              print(f"\\n===== MainActivity.java:{start+1}-{end} =====")
+              for i in range(start, end):
+                  print(f"{i+1}: {lines[i]}")
+                  shown.add(i)
+          if not hits:
+              for i, line in enumerate(lines):
+                  if re.search(r"private .*\\(", line):
+                      print(f"{i+1}: {line}")
+          PY
+
       - name: Verify architecture boundaries
         if: startsWith(github.ref, 'refs/heads/architecture/')
         run: |
