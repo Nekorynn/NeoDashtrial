@@ -854,7 +854,8 @@ main = replace_once(
 main = replace_once(
     main,
     '        TextView mapNote = label("MAP PANEL: OpenStreetMap  ·  NAVIGATION: YOUR SELECTED APP", 8, MUTED, false);',
-    '        String previewMapName = configuredMapPackage.contains("google.android.apps.maps") ? "GOOGLE MAPS" : (configuredMapPackage.contains("waze") ? "WAZE" : (configuredMapPackage.contains("here") ? "HERE" : "OPENSTREETMAP"));'\n    '        TextView mapNote = label("LIVE PREVIEW: " + previewMapName + "  ·  NAVIGATION: " + (configuredMapPackage.isEmpty() ? "NOT SELECTED" : configuredMapName), 8, MUTED, false);',
+    '        String previewMapName = configuredMapPackage.contains("google.android.apps.maps") ? "GOOGLE MAPS" : (configuredMapPackage.contains("waze") ? "WAZE" : (configuredMapPackage.contains("here") ? "HERE" : "OPENSTREETMAP"));'
+    '        TextView mapNote = label("LIVE PREVIEW: " + previewMapName + "  ·  NAVIGATION: " + (configuredMapPackage.isEmpty() ? "NOT SELECTED" : configuredMapName), 8, MUTED, false);',
     "clarify live map versus selected navigation app",
 )
 
