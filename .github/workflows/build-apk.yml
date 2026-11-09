@@ -105,6 +105,9 @@ jobs:
               for i, line in enumerate(lines):
                   if re.search(r"private .*\\(", line):
                       print(f"{i+1}: {line}")
+          print("\\n===== FULL ALL APPS METHOD =====")
+          for i in range(1458, min(len(lines), 1525)):
+              print(f"{i+1}: {lines[i]}")
           PY
 
       - name: Verify architecture boundaries
