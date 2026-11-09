@@ -289,7 +289,7 @@ helpers = r'''
         }
     }
 
-'\''\''
+'''
 main = replace_once(main, helper_anchor, helpers + helper_anchor, "NeoLink client and settings helpers")
 
 # Bluetooth scan/discovery permissions belong to NeoLink, not the dashboard.
