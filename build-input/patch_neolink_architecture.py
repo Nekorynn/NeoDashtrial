@@ -91,6 +91,45 @@ main = replace_once(
 
 # Replace launcher-shortcut-only discovery with a de-duplicated scan of installed
 # applications that Android can actually launch. This includes launchable OEM/system apps.
+
+# Full inventory for the All Apps screen, including enabled OEM/system packages
+# that do not publish a launcher-category activity.
+helper = r"""
+    private List<ResolveInfo> allInstalledApps() {
+        android.content.pm.PackageManager pm = getPackageManager();
+        java.util.LinkedHashMap<String, ResolveInfo> byPackage = new java.util.LinkedHashMap<>();
+        for (android.content.pm.ApplicationInfo app : pm.getInstalledApplications(0)) {
+            if (!app.enabled || app.packageName == null || app.packageName.equals(getPackageName())) continue;
+            ResolveInfo info = new ResolveInfo();
+            android.content.pm.ActivityInfo activity = new android.content.pm.ActivityInfo();
+            activity.applicationInfo = app;
+            activity.packageName = app.packageName;
+            activity.name = app.className;
+            info.activityInfo = activity;
+            byPackage.put(app.packageName, info);
+        }
+        ArrayList<ResolveInfo> apps = new ArrayList<>(byPackage.values());
+        Collections.sort(apps, new Comparator<ResolveInfo>() {
+            @Override public int compare(ResolveInfo a, ResolveInfo b) {
+                return a.loadLabel(pm).toString().compareToIgnoreCase(b.loadLabel(pm).toString());
+            }
+        });
+        return apps;
+    }
+
+"""
+main = replace_once(
+    main,
+    '    private List<ResolveInfo> launchableApps() {',
+    helper + '    private List<ResolveInfo> launchableApps() {',
+    "Add full installed-app inventory",
+)
+main = replace_once(
+    main,
+    '        GridLayout grid = new GridLayout(this);\\n        grid.setColumnCount(4);\\n        grid.setUseDefaultMargins(false);\\n        List<ResolveInfo> apps = launchableApps();',
+    '        GridLayout grid = new GridLayout(this);\\n        grid.setColumnCount(4);\\n        grid.setUseDefaultMargins(false);\\n        List<ResolveInfo> apps = allInstalledApps();',
+    "Use full inventory in All Apps",
+)
 old_apps = r'''    private List<ResolveInfo> launchableApps\(\) \{.*?\n    \}\n\n    private void launchPackageOrFind'''
 new_apps = r'''    private List<ResolveInfo> launchableApps() {
         if (cachedLaunchableApps != null) return cachedLaunchableApps;
