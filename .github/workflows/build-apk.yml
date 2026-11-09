@@ -58,6 +58,29 @@ jobs:
         if: startsWith(github.ref, 'refs/heads/architecture/')
         run: python build-input/patch_neolink_architecture.py
 
+      - name: Diagnose clock and media implementation before build
+        if: startsWith(github.ref, 'refs/heads/architecture/')
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          root = Path("build-source/NeoDash-Sleek-v0.3.0/app/src/main/java")
+          pattern = re.compile(r"time.?sync|ntp|network.?time|clock|media.?session|media.?metadata|album.?art|artwork|playback|transport.?controls|ACTION_PLAY|ACTION_PAUSE|ACTION_NEXT|ACTION_PREVIOUS", re.I)
+          for path in sorted(root.rglob("*.java")):
+              lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+              hits = [i for i, line in enumerate(lines) if pattern.search(line)]
+              if not hits:
+                  continue
+              print(f"\\n===== {path} =====")
+              shown = set()
+              for hit in hits:
+                  start, end = max(0, hit - 3), min(len(lines), hit + 4)
+                  if any(i in shown for i in range(start, end)):
+                      continue
+                  for i in range(start, end):
+                      print(f"{i+1}: {lines[i]}")
+                      shown.add(i)
+          PY
       - name: Verify architecture boundaries
         if: startsWith(github.ref, 'refs/heads/architecture/')
         run: |
