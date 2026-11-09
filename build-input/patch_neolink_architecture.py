@@ -88,6 +88,71 @@ main = replace_once(
     '        long trustedNow = System.currentTimeMillis();',
     "Use Android system clock immediately",
 )
+
+# Replace launcher-shortcut-only discovery with a de-duplicated scan of installed
+# applications that Android can actually launch. This includes launchable OEM/system apps.
+old_apps = r'''    private List<ResolveInfo> launchableApps\(\) \{.*?\n    \}\n\n    private void launchPackageOrFind'''
+new_apps = r'''    private List<ResolveInfo> launchableApps() {
+        if (cachedLaunchableApps != null) return cachedLaunchableApps;
+        android.content.pm.PackageManager pm = getPackageManager();
+        java.util.LinkedHashMap<String, ResolveInfo> byPackage = new java.util.LinkedHashMap<>();
+
+        Intent launcherQuery = new Intent(Intent.ACTION_MAIN, null);
+        launcherQuery.addCategory(Intent.CATEGORY_LAUNCHER);
+        for (ResolveInfo info : pm.queryIntentActivities(launcherQuery, 0)) {
+            if (info.activityInfo != null && info.activityInfo.enabled) {
+                byPackage.put(info.activityInfo.packageName, info);
+            }
+        }
+
+        // Some head-unit/OEM apps publish a Leanback entry rather than a phone launcher entry.
+        Intent leanbackQuery = new Intent(Intent.ACTION_MAIN, null);
+        leanbackQuery.addCategory("android.intent.category.LEANBACK_LAUNCHER");
+        for (ResolveInfo info : pm.queryIntentActivities(leanbackQuery, 0)) {
+            if (info.activityInfo != null && info.activityInfo.enabled) {
+                byPackage.putIfAbsent(info.activityInfo.packageName, info);
+            }
+        }
+
+        // Include enabled installed packages (including OEM system apps) when Android
+        // exposes a safe package launch intent, even if they omitted CATEGORY_LAUNCHER.
+        for (android.content.pm.ApplicationInfo app : pm.getInstalledApplications(0)) {
+            if (!app.enabled || app.packageName == null || app.packageName.equals(getPackageName())
+                    || byPackage.containsKey(app.packageName)) continue;
+            Intent launch = pm.getLaunchIntentForPackage(app.packageName);
+            if (launch == null) continue;
+
+            ResolveInfo synthetic = new ResolveInfo();
+            android.content.pm.ActivityInfo activity = new android.content.pm.ActivityInfo();
+            activity.applicationInfo = app;
+            activity.packageName = app.packageName;
+            activity.name = launch.getComponent() != null
+                    ? launch.getComponent().getClassName() : app.className;
+            synthetic.activityInfo = activity;
+            byPackage.put(app.packageName, synthetic);
+        }
+
+        ArrayList<ResolveInfo> apps = new ArrayList<>(byPackage.values());
+        Collections.sort(apps, new Comparator<ResolveInfo>() {
+            @Override public int compare(ResolveInfo a, ResolveInfo b) {
+                return a.loadLabel(pm).toString().compareToIgnoreCase(b.loadLabel(pm).toString());
+            }
+        });
+        cachedLaunchableApps = apps;
+        return cachedLaunchableApps;
+    }
+
+    private void launchPackageOrFind'''
+main, count = re.subn(old_apps, new_apps, main, count=1, flags=re.S)
+if count != 1:
+    raise SystemExit(f"Installed app scan replacement expected one method, found {count}")
+# Refresh the cached package list whenever the user opens All Apps.
+main = replace_once(
+    main,
+    '    private void showApps() {',
+    '    private void showApps() {\n        cachedLaunchableApps = null;',
+    "Refresh installed app list when opening All Apps",
+)
 main = main.replace("NeoDashConnectionManager", "NeoDashSystemStatusService")
 main = main.replace("else if (index == 2) launchMobileForDetectedPhone();", "else if (index == 2) openNeoLinkSettings();")
 main = main.replace('TextView serviceStatus = label(getSystemStatusText(), 11, MUTED, false);', 'TextView serviceStatus = label(getSystemStatusText() + "  |  " + neoLinkSummary, 11, MUTED, false);')
