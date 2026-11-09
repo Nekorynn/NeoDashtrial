@@ -201,7 +201,7 @@ main = replace_once(
 
 # Add the client and the settings deep-link helpers before the existing app finder.
 helper_anchor = '    private String findInstalledPackage(String hint) {'
-helpers = r'''
+helpers = r\'''
     private void addNeoLinkPreferenceRow(LinearLayout parent) {
         LinearLayout item = column();
         item.setPadding(dp(3), dp(9), dp(3), dp(9));
@@ -289,7 +289,7 @@ helpers = r'''
         }
     }
 
-'''
+'\''\''
 main = replace_once(main, helper_anchor, helpers + helper_anchor, "NeoLink client and settings helpers")
 
 # Bluetooth scan/discovery permissions belong to NeoLink, not the dashboard.
@@ -311,12 +311,15 @@ manifest = manifest.replace('            android:name=".NeoDashConnectionManager
 manifest = manifest.replace(
     '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n',
     '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n'
+    '    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />\n'
     '    <uses-permission android:name="com.neodash.neolink.permission.BIND_SERVICE" />\n'
     '    <queries><package android:name="com.neodash.neolink" /><intent><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent></queries>\n',
     1,
 )
 if manifest.count("<queries>") != 1 or "android.intent.category.LAUNCHER" not in manifest:
     raise SystemExit("NeoDash package visibility query is missing or duplicated")
+if manifest.count('android.permission.QUERY_ALL_PACKAGES') != 1:
+    raise SystemExit("NeoDash installed-app visibility permission is missing or duplicated")
 MANIFEST.write_text(manifest, encoding="utf-8")
 
 # Mark the architecture build distinctly from the retained 0.3.2 baseline.
