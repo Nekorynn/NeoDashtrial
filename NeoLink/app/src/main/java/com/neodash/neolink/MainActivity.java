@@ -28,7 +28,9 @@ import com.neodash.neolink.service.NeoLinkService;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public final class MainActivity extends Activity {
     private Messenger service;
@@ -137,9 +139,11 @@ public final class MainActivity extends Activity {
         List<ResolveInfo> apps = getPackageManager().queryIntentActivities(query, 0);
         packages.clear(); labels.clear();
         packages.add(""); labels.add("Select an installed app…");
+        Set<String> seenPackages = new HashSet<>();
         for (ResolveInfo info : apps) {
+            if (info.activityInfo == null) continue;
             String pkg = info.activityInfo.packageName;
-            if (pkg.equals(getPackageName())) continue;
+            if (pkg == null || pkg.equals(getPackageName()) || !seenPackages.add(pkg)) continue;
             packages.add(pkg);
             labels.add(info.loadLabel(getPackageManager()) + "  ·  " + pkg);
         }
@@ -155,10 +159,25 @@ public final class MainActivity extends Activity {
         androidSpinner.setSelection(Math.max(0, androidIndex));
     }
 
+    private String selectedInstalledPackage(Spinner spinner) {
+        int position = spinner == null ? -1 : spinner.getSelectedItemPosition();
+        if (position < 0 || position >= packages.size()) return "";
+        String packageName = packages.get(position);
+        if (packageName == null || packageName.isEmpty()) return "";
+        try {
+            Intent launch = getPackageManager().getLaunchIntentForPackage(packageName);
+            return launch == null ? "" : packageName;
+        } catch (RuntimeException unavailable) {
+            return "";
+        }
+    }
+
     private void saveSelections() {
+        String iosPackage = selectedInstalledPackage(iosSpinner);
+        String androidPackage = selectedInstalledPackage(androidSpinner);
         getSharedPreferences("receivers", MODE_PRIVATE).edit()
-            .putString("ios_package", packages.get(iosSpinner.getSelectedItemPosition()))
-            .putString("android_package", packages.get(androidSpinner.getSelectedItemPosition()))
+            .putString("ios_package", iosPackage)
+            .putString("android_package", androidPackage)
             .apply();
         Toast.makeText(this, "Receiver selections saved", Toast.LENGTH_SHORT).show();
     }
