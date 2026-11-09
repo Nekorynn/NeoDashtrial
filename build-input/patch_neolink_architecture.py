@@ -80,6 +80,14 @@ OLD_SERVICE.unlink()
 
 # --- NeoDash UI: receiver app setup and automatic launching move to NeoLink. ---
 main = MAIN.read_text(encoding="utf-8")
+# The dashboard clock must never wait for trusted/network time verification.
+# Android's local wall clock is always the immediate display source; time sync is advisory.
+main = replace_once(
+    main,
+    '        long trustedNow = getVerifiedDashboardTimeMillis();',
+    '        long trustedNow = System.currentTimeMillis();',
+    "Use Android system clock immediately",
+)
 main = main.replace("NeoDashConnectionManager", "NeoDashSystemStatusService")
 main = main.replace("else if (index == 2) launchMobileForDetectedPhone();", "else if (index == 2) openNeoLinkSettings();")
 main = main.replace('TextView serviceStatus = label(getSystemStatusText(), 11, MUTED, false);', 'TextView serviceStatus = label(getSystemStatusText() + "  |  " + neoLinkSummary, 11, MUTED, false);')
