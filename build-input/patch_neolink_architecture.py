@@ -446,8 +446,11 @@ gradle_file.write_text(gradle_text, encoding="utf-8")
 print("NeoDash/NeoLink architecture patch applied.")
 
 # Temporary source inspection for the map/media UI follow-up.
-for _start, _end, _label in [(245, 375, "CLOCK_MEDIA_PANE"), (485, 545, "MAP_PANE"), (320, 370, "MEDIA_HELPERS")]:
+for _start, _end, _label in [(245, 375, "CLOCK_MEDIA_PANE"), (485, 545, "MAP_PANE"), (543, 650, "MAP_URL_AND_LIFECYCLE"), (1, 90, "IMPORTS_AND_FIELDS"), (320, 370, "MEDIA_HELPERS")]:
     _lines = MAIN.read_text(encoding="utf-8").splitlines()
     print("\\n===== " + _label + " =====")
     for _i in range(_start, min(_end, len(_lines))):
         print(f"{_i+1}: {_lines[_i]}")
+
+print("\\n===== ANDROID_MANIFEST =====")
+print(MANIFEST.read_text(encoding="utf-8"))
