@@ -175,6 +175,24 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Publish NeoDash 0.4.0 architecture preview
+        if: startsWith(github.ref, 'refs/heads/architecture/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RELEASE_TAG="v0.4.0-architecture-preview"
+          ASSETS="NeoDash-0.4.0-Architecture-Preview-debug.apk NeoLink-0.1.0-Architecture-Preview-debug.apk"
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" $ASSETS --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$RELEASE_TAG" $ASSETS \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "NeoDash 0.4.0 — Architecture Preview" \
+              --prerelease \
+              --target "$GITHUB_SHA" \
+              --notes "Early architecture preview of the NeoDash and NeoLink split. Includes immediate Android system-clock display and expanded installed-app inventory. NeoLink is a separate companion APK. Debug-signed builds for private testing; not a stable release. Media artwork and transport-control improvements remain in development."
+          fi
+
       - name: Publish APK to GitHub Releases
         if: github.ref == 'refs/heads/main'
         env:
