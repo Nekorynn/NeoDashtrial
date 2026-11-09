@@ -724,29 +724,37 @@ shortcut_block = shortcut_block.replace(
     1,
 )
 main = main[:shortcut_start] + shortcut_block + main[shortcut_end:]
-main = replace_once(
-    main,
+custom_icon_old = (
     "            int iconWidth = iconScale == 0 ? 44 : (iconScale == 2 ? 58 : 52);\n"
     "            LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(iconWidth), 0, 1);\n"
     "            iconParams.gravity = Gravity.CENTER;\n"
-    "            tile.addView(icon, iconParams);",
+    "            tile.addView(icon, iconParams);"
+)
+custom_icon_new = (
     "            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);\n"
     "            LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(-1, 0, 1);\n"
-    "            tile.addView(icon, iconParams);",
-    "expand custom shortcut artwork across tile",
+    "            tile.addView(icon, iconParams);"
 )
-main = replace_once(
-    main,
+if custom_icon_old not in shortcut_block:
+    raise SystemExit("Could not locate custom app artwork layout in addShortcut")
+shortcut_block = shortcut_block.replace(custom_icon_old, custom_icon_new)
+
+installed_icon_old = (
     "            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);\n"
     "            int iconDp = iconScale == 0 ? 34 : (iconScale == 2 ? 52 : 43);\n"
     "            LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(dp(iconDp), 0, 1);\n"
     "            imageParams.gravity = Gravity.CENTER;\n"
-    "            tile.addView(icon, imageParams);",
+    "            tile.addView(icon, imageParams);"
+)
+installed_icon_new = (
     "            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);\n"
     "            LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(-1, 0, 1);\n"
-    "            tile.addView(icon, imageParams);",
-    "expand installed app icon across tile",
+    "            tile.addView(icon, imageParams);"
 )
+if installed_icon_old not in shortcut_block:
+    raise SystemExit("Could not locate installed app icon layout in addShortcut")
+shortcut_block = shortcut_block.replace(installed_icon_old, installed_icon_new)
+main = main[:shortcut_start] + shortcut_block + main[shortcut_end:]
 
 # --- Location: reject stale last-known fixes and request a fresh device fix. ---
 map_method = re.compile(
