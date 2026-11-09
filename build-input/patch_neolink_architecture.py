@@ -684,3 +684,26 @@ if "NeoDashMediaNotificationListener" not in manifest:
     MANIFEST.write_text(manifest, encoding="utf-8")
 
 print("Map WebView renderer enabled; active media metadata/artwork and icon transport controls installed.")
+
+
+# Keep the embedded map useful before Android has a first GPS/network location fix.
+main = MAIN.read_text(encoding="utf-8")
+main = replace_once(
+    main,
+    '        if (Double.isNaN(lat) || Double.isNaN(lon)) {\n'
+    '            return "https://www.openstreetmap.org";\n'
+    '        }',
+    '        if (Double.isNaN(lat) || Double.isNaN(lon)) {\n'
+    '            double fallbackLat = 12.8797; // Philippines overview until a device fix is available.\n'
+    '            double fallbackLon = 121.7740;\n'
+    '            double fallbackDeltaLat = 0.12;\n'
+    '            double fallbackDeltaLon = 0.16;\n'
+    '            return "https://www.openstreetmap.org/export/embed.html?bbox="\n'
+    '                    + (fallbackLon - fallbackDeltaLon) + "%2C" + (fallbackLat - fallbackDeltaLat)\n'
+    '                    + "%2C" + (fallbackLon + fallbackDeltaLon) + "%2C" + (fallbackLat + fallbackDeltaLat)\n'
+    '                    + "&layer=mapnik";\n'
+    '        }',
+    "show a map even before first location fix",
+)
+MAIN.write_text(main, encoding="utf-8")
+print("Embedded map now has a Philippines fallback view until device location is available.")
