@@ -762,14 +762,23 @@ map_method = re.compile(
 )
 new_map_method = (
     "    private String buildEmbeddedMapUrl() {\n"
-    "        // Never treat a cached location as current. requestFreshMapLocation() updates these fields.\n"
+    "        String selectedMapPackage = prefs.getString(\"map_package\", \"\").toLowerCase(Locale.ROOT);\n"
+    "        boolean googleMaps = selectedMapPackage.contains(\"google.android.apps.maps\");\n"
+    "        boolean waze = selectedMapPackage.contains(\"waze\");\n"
+    "        boolean here = selectedMapPackage.contains(\"here\");\n"
     "        if (Double.isNaN(mapLatitude) || Double.isNaN(mapLongitude)) {\n"
     "            double lat = 12.8797;\n"
     "            double lon = 121.7740;\n"
+    "            if (googleMaps) return String.format(Locale.US, \"https://maps.google.com/maps?q=%.6f,%.6f&z=6&output=embed\", lat, lon);\n"
+    "            if (waze) return String.format(Locale.US, \"https://embed.waze.com/iframe?zoom=6&lat=%.6f&lon=%.6f&pin=0\", lat, lon);\n"
+    "            if (here) return String.format(Locale.US, \"https://wego.here.com/?map=%.6f,%.6f,6,normal\", lat, lon);\n"
     "            return String.format(Locale.US,\n"
     "                    \"https://www.openstreetmap.org/export/embed.html?bbox=%.6f%%2C%.6f%%2C%.6f%%2C%.6f&layer=mapnik\",\n"
     "                    lon - 0.45, lat - 0.30, lon + 0.45, lat + 0.30);\n"
     "        }\n"
+    "        if (googleMaps) return String.format(Locale.US, \"https://maps.google.com/maps?q=%.6f,%.6f&z=15&output=embed\", mapLatitude, mapLongitude);\n"
+    "        if (waze) return String.format(Locale.US, \"https://embed.waze.com/iframe?zoom=14&lat=%.6f&lon=%.6f&pin=1\", mapLatitude, mapLongitude);\n"
+    "        if (here) return String.format(Locale.US, \"https://wego.here.com/?map=%.6f,%.6f,14,normal\", mapLatitude, mapLongitude);\n"
     "        double deltaLat = 0.018;\n"
     "        double deltaLon = 0.024;\n"
     "        return String.format(Locale.US,\n"
@@ -845,7 +854,7 @@ main = replace_once(
 main = replace_once(
     main,
     '        TextView mapNote = label("MAP PANEL: OpenStreetMap  ·  NAVIGATION: YOUR SELECTED APP", 8, MUTED, false);',
-    '        TextView mapNote = label("LIVE PREVIEW: OpenStreetMap  ·  NAVIGATION: " + (configuredMapPackage.isEmpty() ? "NOT SELECTED" : configuredMapName), 8, MUTED, false);',
+    '        String previewMapName = configuredMapPackage.contains("google.android.apps.maps") ? "GOOGLE MAPS" : (configuredMapPackage.contains("waze") ? "WAZE" : (configuredMapPackage.contains("here") ? "HERE" : "OPENSTREETMAP"));'\n    '        TextView mapNote = label("LIVE PREVIEW: " + previewMapName + "  ·  NAVIGATION: " + (configuredMapPackage.isEmpty() ? "NOT SELECTED" : configuredMapName), 8, MUTED, false);',
     "clarify live map versus selected navigation app",
 )
 
