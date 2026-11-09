@@ -707,3 +707,225 @@ main = replace_once(
 )
 MAIN.write_text(main, encoding="utf-8")
 print("Embedded map now has a Philippines fallback view until device location is available.")
+
+
+# --- Quick-launch tiles: let the app artwork use the full tile body. ---
+main = MAIN.read_text(encoding="utf-8")
+main = replace_once(
+    main,
+    "        tile.setPadding(dp(7), dp(8), dp(7), dp(8));",
+    "        tile.setPadding(dp(1), dp(1), dp(1), dp(1));",
+    "remove shortcut tile icon padding",
+)
+main = replace_once(
+    main,
+    "            int iconWidth = iconScale == 0 ? 44 : (iconScale == 2 ? 58 : 52);\n"
+    "            LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(iconWidth), 0, 1);\n"
+    "            iconParams.gravity = Gravity.CENTER;\n"
+    "            tile.addView(icon, iconParams);",
+    "            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);\n"
+    "            LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(-1, 0, 1);\n"
+    "            tile.addView(icon, iconParams);",
+    "expand custom shortcut artwork across tile",
+)
+main = replace_once(
+    main,
+    "            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);\n"
+    "            int iconDp = iconScale == 0 ? 34 : (iconScale == 2 ? 52 : 43);\n"
+    "            LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(dp(iconDp), 0, 1);\n"
+    "            imageParams.gravity = Gravity.CENTER;\n"
+    "            tile.addView(icon, imageParams);",
+    "            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);\n"
+    "            LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(-1, 0, 1);\n"
+    "            tile.addView(icon, imageParams);",
+    "expand installed app icon across tile",
+)
+
+# --- Location: reject stale last-known fixes and request a fresh device fix. ---
+map_method = re.compile(
+    r"    private String buildEmbeddedMapUrl\\(\\) \\{.*?\\n    \\}\\n\\n    private void launchConfiguredMapApp\\(\\)",
+    re.DOTALL,
+)
+new_map_method = (
+    "    private String buildEmbeddedMapUrl() {\\n"
+    "        // Never treat a cached location as current. requestFreshMapLocation() updates these fields.\\n"
+    "        if (Double.isNaN(mapLatitude) || Double.isNaN(mapLongitude)) {\\n"
+    "            double lat = 12.8797;\\n"
+    "            double lon = 121.7740;\\n"
+    "            return String.format(Locale.US,\\n"
+    "                    \\"https://www.openstreetmap.org/export/embed.html?bbox=%.6f%%2C%.6f%%2C%.6f%%2C%.6f&layer=mapnik\\",\\n"
+    "                    lon - 0.45, lat - 0.30, lon + 0.45, lat + 0.30);\\n"
+    "        }\\n"
+    "        double deltaLat = 0.018;\\n"
+    "        double deltaLon = 0.024;\\n"
+    "        return String.format(Locale.US,\\n"
+    "                \\"https://www.openstreetmap.org/export/embed.html?bbox=%.6f%%2C%.6f%%2C%.6f%%2C%.6f&layer=mapnik&marker=%.6f%%2C%.6f\\",\\n"
+    "                mapLongitude - deltaLon, mapLatitude - deltaLat, mapLongitude + deltaLon, mapLatitude + deltaLat,\\n"
+    "                mapLatitude, mapLongitude);\\n"
+    "    }\\n\\n"
+    "    private void requestFreshMapLocation() {\\n"
+    "        if (android.os.Build.VERSION.SDK_INT >= 23\\n"
+    "                && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {\\n"
+    "            return;\\n"
+    "        }\\n"
+    "        LocationManager manager = (LocationManager) getSystemService(LOCATION_SERVICE);\\n"
+    "        if (manager == null) return;\\n"
+    "        long nowNanos = android.os.SystemClock.elapsedRealtimeNanos();\\n"
+    "        Location best = null;\\n"
+    "        try {\\n"
+    "            for (String provider : manager.getProviders(true)) {\\n"
+    "                Location cached = manager.getLastKnownLocation(provider);\\n"
+    "                if (cached == null) continue;\\n"
+    "                long age = nowNanos - cached.getElapsedRealtimeNanos();\\n"
+    "                boolean fresh = age >= 0L && age <= 90_000_000_000L;\\n"
+    "                boolean accurate = !cached.hasAccuracy() || cached.getAccuracy() <= 5000f;\\n"
+    "                if (fresh && accurate && (best == null || cached.getElapsedRealtimeNanos() > best.getElapsedRealtimeNanos())) best = cached;\\n"
+    "            }\\n"
+    "            if (best != null) {\\n"
+    "                mapLatitude = best.getLatitude();\\n"
+    "                mapLongitude = best.getLongitude();\\n"
+    "                if (mapWebView != null) mapWebView.loadUrl(buildEmbeddedMapUrl());\\n"
+    "            }\\n"
+    "            for (String provider : new String[]{LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER}) {\\n"
+    "                if (!manager.isProviderEnabled(provider)) continue;\\n"
+    "                manager.requestSingleUpdate(provider, new android.location.LocationListener() {\\n"
+    "                    @Override public void onLocationChanged(Location location) {\\n"
+    "                        if (location == null) return;\\n"
+    "                        if (location.hasAccuracy() && location.getAccuracy() > 5000f) return;\\n"
+    "                        long age = android.os.SystemClock.elapsedRealtimeNanos() - location.getElapsedRealtimeNanos();\\n"
+    "                        if (age < 0L || age > 90_000_000_000L) return;\\n"
+    "                        mapLatitude = location.getLatitude();\\n"
+    "                        mapLongitude = location.getLongitude();\\n"
+    "                        if (mapWebView != null) mapWebView.loadUrl(buildEmbeddedMapUrl());\\n"
+    "                    }\\n"
+    "                    @Override public void onStatusChanged(String provider, int status, android.os.Bundle extras) { }\\n"
+    "                    @Override public void onProviderEnabled(String provider) { }\\n"
+    "                    @Override public void onProviderDisabled(String provider) { }\\n"
+    "                }, android.os.Looper.getMainLooper());\\n"
+    "            }\\n"
+    "        } catch (SecurityException denied) {\\n"
+    "            Toast.makeText(this, \\"Enable precise location for the live map\\", Toast.LENGTH_LONG).show();\\n"
+    "        } catch (RuntimeException ignored) { }\\n"
+    "    }\\n\\n"
+    "    private void launchConfiguredMapApp()"
+)
+main, map_count = map_method.subn(new_map_method, main, count=1)
+if map_count != 1:
+    raise SystemExit("Could not replace embedded map location method")
+main = replace_once(
+    main,
+    "            mapWebView.loadUrl(buildEmbeddedMapUrl());",
+    "            mapWebView.loadUrl(buildEmbeddedMapUrl());\n"
+    "            requestFreshMapLocation();",
+    "request fresh location when map opens",
+)
+# The selected navigation app is the app opened by the button; the live preview is OSM.
+main = replace_once(
+    main,
+    '        TextView openMap = label("OPEN NAV APP  ↗", 9, WHITE, true);',
+    '        String configuredMapPackage = prefs.getString("map_package", "");\n'
+    '        String configuredMapName = configuredMapPackage.isEmpty() ? "SELECT MAP APP" : appNameSafe(configuredMapPackage).toUpperCase(Locale.getDefault());\n'
+    '        TextView openMap = label("OPEN " + configuredMapName + "  ↗", 9, WHITE, true);',
+    "show the selected navigation app name",
+)
+main = replace_once(
+    main,
+    '        TextView mapNote = label("MAP PANEL: OpenStreetMap  ·  NAVIGATION: YOUR SELECTED APP", 8, MUTED, false);',
+    '        TextView mapNote = label("LIVE PREVIEW: OpenStreetMap  ·  NAVIGATION: " + (configuredMapPackage.isEmpty() ? "NOT SELECTED" : configuredMapName), 8, MUTED, false);',
+    "clarify live map versus selected navigation app",
+)
+
+# --- Notification access: deep-link to NeoDash and make the grant state explicit. ---
+main = replace_once(
+    main,
+    "    private android.widget.TextView mediaTitleView, mediaArtistView;\n",
+    "    private android.widget.TextView mediaTitleView, mediaArtistView, mediaAccessButton;\n",
+    "add media access action view",
+)
+main = replace_once(
+    main,
+    "        hub.addView(mediaInfo, new LinearLayout.LayoutParams(-1, dp(62)));\n",
+    "        hub.addView(mediaInfo, new LinearLayout.LayoutParams(-1, dp(62)));\n"
+    "        mediaAccessButton = label(\\"ENABLE MEDIA ACCESS  ↗\\", 10, BG, true);\n"
+    "        mediaAccessButton.setGravity(Gravity.CENTER);\n"
+    "        mediaAccessButton.setBackground(panel(CYAN, CYAN, 9));\n"
+    "        LinearLayout.LayoutParams accessParams = new LinearLayout.LayoutParams(-1, dp(32));\n"
+    "        accessParams.topMargin = dp(5);\n"
+    "        hub.addView(mediaAccessButton, accessParams);\n"
+    "        mediaAccessButton.setOnClickListener(v -> openMediaNotificationAccess());\n"
+    "        mediaAccessButton.setVisibility(hasMediaNotificationAccess() ? View.GONE : View.VISIBLE);\n",
+    "add explicit media access grant button",
+)
+main = replace_once(
+    main,
+    "    private void openMediaNotificationAccess() {\\n"
+    "        try {\\n"
+    "            startActivity(new android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));\\n"
+    "        } catch (RuntimeException ex) {\\n"
+    "            Toast.makeText(this, \\"Enable NeoDash media access in Android Settings\\", Toast.LENGTH_LONG).show();\\n"
+    "        }\\n"
+    "    }",
+    "    private boolean hasMediaNotificationAccess() {\\n"
+    "        android.content.ComponentName listener = new android.content.ComponentName(this, NeoDashMediaNotificationListener.class);\\n"
+    "        try {\\n"
+    "            if (android.os.Build.VERSION.SDK_INT >= 27) {\\n"
+    "                android.app.NotificationManager nm = (android.app.NotificationManager) getSystemService(NOTIFICATION_SERVICE);\\n"
+    "                return nm != null && nm.isNotificationListenerAccessGranted(listener);\\n"
+    "            }\\n"
+    "            String enabled = android.provider.Settings.Secure.getString(getContentResolver(), \\"enabled_notification_listeners\\");\\n"
+    "            return enabled != null && enabled.contains(listener.flattenToString());\\n"
+    "        } catch (RuntimeException ignored) { return false; }\\n"
+    "    }\\n\\n"
+    "    private void openMediaNotificationAccess() {\\n"
+    "        android.content.ComponentName listener = new android.content.ComponentName(this, NeoDashMediaNotificationListener.class);\\n"
+    "        try {\\n"
+    "            android.content.Intent intent;\\n"
+    "            if (android.os.Build.VERSION.SDK_INT >= 30) {\\n"
+    "                intent = new android.content.Intent(\\"android.settings.NOTIFICATION_LISTENER_DETAIL_SETTINGS\\");\\n"
+    "                intent.putExtra(\\"android.provider.extra.NOTIFICATION_LISTENER_COMPONENT_NAME\\", listener);\\n"
+    "            } else {\\n"
+    "                intent = new android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);\\n"
+    "                new AlertDialog.Builder(this).setTitle(\\"Enable NeoDash media access\\")\\n"
+    "                    .setMessage(\\"On the next screen, find NeoDash and turn on Allow notification access. Then return to NeoDash.\\")\\n"
+    "                    .setPositiveButton(\\"OPEN SETTINGS\\", (dialog, which) -> { try { startActivity(intent); } catch (RuntimeException ignored) { } })\\n"
+    "                    .setNegativeButton(\\"CANCEL\\", null).show();\\n"
+    "                return;\\n"
+    "            }\\n"
+    "            startActivity(intent);\\n"
+    "        } catch (RuntimeException ex) {\\n"
+    "            try { startActivity(new android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)); }\\n"
+    "            catch (RuntimeException ignored) { Toast.makeText(this, \\"Open Android Settings → Notification access → NeoDash\\", Toast.LENGTH_LONG).show(); }\\n"
+    "        }\\n"
+    "    }",
+    "deep-link to NeoDash notification access",
+)
+main = replace_once(
+    main,
+    "        if (albumArtView == null || mediaTitleView == null || mediaArtistView == null) return;\n"
+    "        try {",
+    "        if (albumArtView == null || mediaTitleView == null || mediaArtistView == null) return;\n"
+    "        boolean mediaGranted = hasMediaNotificationAccess();\n"
+    "        if (mediaAccessButton != null) mediaAccessButton.setVisibility(mediaGranted ? View.GONE : View.VISIBLE);\n"
+    "        if (!mediaGranted) {\n"
+    "            activeMediaController = null;\n"
+    "            mediaTitleView.setText(\\"Media access required\\");\n"
+    "            mediaArtistView.setText(\\"Enable NeoDash in Android notification access\\");\n"
+    "            albumArtView.setImageResource(android.R.drawable.ic_media_play);\n"
+    "            albumArtView.setTag(null);\n"
+    "            return;\n"
+    "        }\n"
+    "        try {",
+    "check media access before querying sessions",
+)
+# Add an immediate refresh after returning from Android Settings.
+main = replace_once(
+    main,
+    "    @Override protected void onResume() {\n"
+    "        super.onResume();\n",
+    "    @Override protected void onResume() {\n"
+    "        super.onResume();\n"
+    "        if (mediaHandler != null) { mediaHandler.removeCallbacks(mediaRefreshRunnable); mediaHandler.post(mediaRefreshRunnable); }\n",
+    "refresh media permission and metadata on resume",
+)
+MAIN.write_text(main, encoding="utf-8")
+print("Full-tile app icons, fresh GPS-only map centering, selected nav app labeling, and direct media-access setup applied.")
