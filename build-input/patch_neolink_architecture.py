@@ -731,7 +731,6 @@ custom_icon_old = (
     "            tile.addView(icon, iconParams);"
 )
 custom_icon_new = (
-    "            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);\n"
     "            LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(-1, 0, 1);\n"
     "            tile.addView(icon, iconParams);"
 )
