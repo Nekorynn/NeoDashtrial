@@ -201,7 +201,7 @@ main = replace_once(
 
 # Add the client and the settings deep-link helpers before the existing app finder.
 helper_anchor = '    private String findInstalledPackage(String hint) {'
-helpers = r\'''
+helpers = r'''
     private void addNeoLinkPreferenceRow(LinearLayout parent) {
         LinearLayout item = column();
         item.setPadding(dp(3), dp(9), dp(3), dp(9));
