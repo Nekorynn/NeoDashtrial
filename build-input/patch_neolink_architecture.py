@@ -126,8 +126,8 @@ main = replace_once(
 )
 main = replace_once(
     main,
-    '        GridLayout grid = new GridLayout(this);\\n        grid.setColumnCount(4);\\n        grid.setUseDefaultMargins(false);\\n        List<ResolveInfo> apps = launchableApps();',
-    '        GridLayout grid = new GridLayout(this);\\n        grid.setColumnCount(4);\\n        grid.setUseDefaultMargins(false);\\n        List<ResolveInfo> apps = allInstalledApps();',
+    '        GridLayout grid = new GridLayout(this);\n        grid.setColumnCount(4);\n        grid.setUseDefaultMargins(false);\n        List<ResolveInfo> apps = launchableApps();',
+    '        GridLayout grid = new GridLayout(this);\n        grid.setColumnCount(4);\n        grid.setUseDefaultMargins(false);\n        List<ResolveInfo> apps = allInstalledApps();',
     "Use full inventory in All Apps",
 )
 old_apps = r'''    private List<ResolveInfo> launchableApps\(\) \{.*?\n    \}\n\n    private void launchPackageOrFind'''
