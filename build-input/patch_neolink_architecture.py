@@ -711,12 +711,19 @@ print("Embedded map now has a Philippines fallback view until device location is
 
 # --- Quick-launch tiles: let the app artwork use the full tile body. ---
 main = MAIN.read_text(encoding="utf-8")
-main = replace_once(
-    main,
-    "        tile.setPadding(dp(7), dp(8), dp(7), dp(8));",
-    "        tile.setPadding(dp(1), dp(1), dp(1), dp(1));",
-    "remove shortcut tile icon padding",
+shortcut_start = main.index("private void addShortcut(")
+shortcut_end = main.find("\n    private ", shortcut_start + 1)
+if shortcut_start < 0 or shortcut_end < 0:
+    raise SystemExit("Could not locate addShortcut method")
+shortcut_block = main[shortcut_start:shortcut_end]
+if "tile.setPadding(dp(7), dp(8), dp(7), dp(8));" not in shortcut_block:
+    raise SystemExit("Could not locate addShortcut tile padding")
+shortcut_block = shortcut_block.replace(
+    "tile.setPadding(dp(7), dp(8), dp(7), dp(8));",
+    "tile.setPadding(dp(1), dp(1), dp(1), dp(1));",
+    1,
 )
+main = main[:shortcut_start] + shortcut_block + main[shortcut_end:]
 main = replace_once(
     main,
     "            int iconWidth = iconScale == 0 ? 44 : (iconScale == 2 ? 58 : 52);\n"
