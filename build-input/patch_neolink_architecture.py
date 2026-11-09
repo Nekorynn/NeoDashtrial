@@ -445,12 +445,242 @@ gradle_file.write_text(gradle_text, encoding="utf-8")
 
 print("NeoDash/NeoLink architecture patch applied.")
 
-# Temporary source inspection for the map/media UI follow-up.
-for _start, _end, _label in [(245, 375, "CLOCK_MEDIA_PANE"), (485, 545, "MAP_PANE"), (543, 650, "MAP_URL_AND_LIFECYCLE"), (1, 90, "IMPORTS_AND_FIELDS"), (320, 370, "MEDIA_HELPERS")]:
-    _lines = MAIN.read_text(encoding="utf-8").splitlines()
-    print("\\n===== " + _label + " =====")
-    for _i in range(_start, min(_end, len(_lines))):
-        print(f"{_i+1}: {_lines[_i]}")
 
-print("\\n===== ANDROID_MANIFEST =====")
-print(MANIFEST.read_text(encoding="utf-8"))
+
+# --- Embedded map: the existing OpenStreetMap page uses JavaScript to render tiles. ---
+main = MAIN.read_text(encoding="utf-8")
+main = replace_once(
+    main,
+    "            mapWebView.setBackgroundColor(Color.rgb(8, 16, 23));\n",
+    "            mapWebView.setBackgroundColor(Color.rgb(8, 16, 23));\n"
+    "            mapWebView.setWebViewClient(new android.webkit.WebViewClient());\n",
+    "install embedded map WebView client",
+)
+main = replace_once(main, "            settings.setJavaScriptEnabled(false);", "            settings.setJavaScriptEnabled(true);", "enable map renderer JavaScript")
+main = replace_once(main, "            settings.setDomStorageEnabled(false);", "            settings.setDomStorageEnabled(true);", "enable map renderer storage")
+main = replace_once(
+    main,
+    "            settings.setSupportZoom(true);",
+    "            settings.setSupportZoom(true);\n"
+    "            settings.setLoadsImagesAutomatically(true);\n",
+    "enable map tile images",
+)
+
+# --- Media artwork/session support. Read Android's active MediaSession metadata. ---
+main = replace_once(
+    main,
+    "    private LinearLayout root;\n",
+    "    private LinearLayout root;\n"
+    "    private android.widget.ImageView albumArtView;\n"
+    "    private android.widget.TextView mediaTitleView, mediaArtistView;\n"
+    "    private android.media.session.MediaController activeMediaController;\n"
+    "    private final android.os.Handler mediaHandler = new android.os.Handler(android.os.Looper.getMainLooper());\n"
+    "    private final Runnable mediaRefreshRunnable = new Runnable() {\n"
+    "        @Override public void run() {\n"
+    "            updateActiveMediaSession();\n"
+    "            mediaHandler.postDelayed(this, 1500L);\n"
+    "        }\n"
+    "    };\n",
+    "add media session fields",
+)
+
+main = replace_once(
+    main,
+    "        hub.addView(active, new LinearLayout.LayoutParams(-1, dp(22)));\n\n"
+    "        LinearLayout controls = row();",
+    "        hub.addView(active, new LinearLayout.LayoutParams(-1, dp(22)));\n\n"
+    "        LinearLayout mediaInfo = row();\n"
+    "        mediaInfo.setGravity(Gravity.CENTER_VERTICAL);\n"
+    "        mediaInfo.setPadding(dp(2), dp(5), dp(2), dp(5));\n"
+    "        albumArtView = new android.widget.ImageView(this);\n"
+    "        albumArtView.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);\n"
+    "        albumArtView.setBackground(panel(Color.rgb(9, 23, 35), LINE, 8));\n"
+    "        albumArtView.setImageResource(android.R.drawable.ic_media_play);\n"
+    "        LinearLayout.LayoutParams artParams = new LinearLayout.LayoutParams(dp(54), dp(54));\n"
+    "        artParams.rightMargin = dp(10);\n"
+    "        mediaInfo.addView(albumArtView, artParams);\n"
+    "        LinearLayout trackText = column();\n"
+    "        mediaTitleView = label(\"No active player\", 11, WHITE, true);\n"
+    "        mediaArtistView = label(\"Start music on your connected device\", 9, MUTED, false);\n"
+    "        trackText.addView(mediaTitleView);\n"
+    "        LinearLayout.LayoutParams artistParams = new LinearLayout.LayoutParams(-1, -2);\n"
+    "        artistParams.topMargin = dp(4);\n"
+    "        trackText.addView(mediaArtistView, artistParams);\n"
+    "        mediaInfo.addView(trackText, new LinearLayout.LayoutParams(0, -2, 1));\n"
+    "        hub.addView(mediaInfo, new LinearLayout.LayoutParams(-1, dp(62)));\n"
+    "        mediaTitleView.setOnClickListener(v -> openMediaNotificationAccess());\n"
+    "        mediaArtistView.setOnClickListener(v -> openMediaNotificationAccess());\n"
+    "        mediaHandler.removeCallbacks(mediaRefreshRunnable);\n"
+    "        mediaHandler.post(mediaRefreshRunnable);\n\n"
+    "        LinearLayout controls = row();",
+    "add live media artwork row",
+)
+
+main = replace_once(
+    main,
+    "    private void addMediaSource(LinearLayout parent, String title, String key, String selected) {",
+    "    private void openMediaNotificationAccess() {\n"
+    "        try {\n"
+    "            startActivity(new android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));\n"
+    "        } catch (RuntimeException ex) {\n"
+    "            Toast.makeText(this, \"Enable NeoDash media access in Android Settings\", Toast.LENGTH_LONG).show();\n"
+    "        }\n"
+    "    }\n\n"
+    "    private void updateActiveMediaSession() {\n"
+    "        if (albumArtView == null || mediaTitleView == null || mediaArtistView == null) return;\n"
+    "        try {\n"
+    "            android.media.session.MediaSessionManager manager = (android.media.session.MediaSessionManager) getSystemService(android.content.Context.MEDIA_SESSION_SERVICE);\n"
+    "            if (manager == null) return;\n"
+    "            android.content.ComponentName listener = new android.content.ComponentName(this, NeoDashMediaNotificationListener.class);\n"
+    "            java.util.List<android.media.session.MediaController> sessions = manager.getActiveSessions(listener);\n"
+    "            activeMediaController = null;\n"
+    "            if (sessions != null) {\n"
+    "                for (android.media.session.MediaController candidate : sessions) {\n"
+    "                    android.media.session.PlaybackState state = candidate.getPlaybackState();\n"
+    "                    if (activeMediaController == null) activeMediaController = candidate;\n"
+    "                    if (state != null && (state.getState() == android.media.session.PlaybackState.STATE_PLAYING\n"
+    "                            || state.getState() == android.media.session.PlaybackState.STATE_BUFFERING)) {\n"
+    "                        activeMediaController = candidate;\n"
+    "                        break;\n"
+    "                    }\n"
+    "                }\n"
+    "            }\n"
+    "            if (activeMediaController == null) {\n"
+    "                mediaTitleView.setText(\"No active player\");\n"
+    "                mediaArtistView.setText(\"Tap here to enable media access\");\n"
+    "                albumArtView.setImageResource(android.R.drawable.ic_media_play);\n"
+    "                albumArtView.setTag(null);\n"
+    "                return;\n"
+    "            }\n"
+    "            android.media.MediaMetadata metadata = activeMediaController.getMetadata();\n"
+    "            if (metadata == null) {\n"
+    "                mediaTitleView.setText(activeMediaController.getPackageName());\n"
+    "                mediaArtistView.setText(\"Waiting for track information\");\n"
+    "                return;\n"
+    "            }\n"
+    "            String title = metadata.getString(android.media.MediaMetadata.METADATA_KEY_TITLE);\n"
+    "            String artist = metadata.getString(android.media.MediaMetadata.METADATA_KEY_ARTIST);\n"
+    "            if (title == null || title.trim().isEmpty()) title = metadata.getString(android.media.MediaMetadata.METADATA_KEY_DISPLAY_TITLE);\n"
+    "            if (artist == null || artist.trim().isEmpty()) artist = metadata.getString(android.media.MediaMetadata.METADATA_KEY_ALBUM);\n"
+    "            mediaTitleView.setText(title == null || title.trim().isEmpty() ? activeMediaController.getPackageName() : title);\n"
+    "            mediaArtistView.setText(artist == null ? \"Now playing\" : artist);\n"
+    "            android.graphics.Bitmap art = metadata.getBitmap(android.media.MediaMetadata.METADATA_KEY_ART);\n"
+    "            if (art == null) art = metadata.getBitmap(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART);\n"
+    "            if (art == null) art = metadata.getBitmap(android.media.MediaMetadata.METADATA_KEY_DISPLAY_ICON);\n"
+    "            if (art != null) {\n"
+    "                albumArtView.setImageBitmap(art);\n"
+    "                albumArtView.setTag(\"bitmap:\" + title);\n"
+    "            } else {\n"
+    "                String artUri = metadata.getString(android.media.MediaMetadata.METADATA_KEY_ART_URI);\n"
+    "                if (artUri == null) artUri = metadata.getString(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART_URI);\n"
+    "                if (artUri == null) artUri = metadata.getString(android.media.MediaMetadata.METADATA_KEY_DISPLAY_ICON_URI);\n"
+    "                if (artUri != null && !artUri.equals(String.valueOf(albumArtView.getTag()))) {\n"
+    "                    albumArtView.setTag(artUri);\n"
+    "                    final String requestedUri = artUri;\n"
+    "                    new Thread(() -> {\n"
+    "                        android.graphics.Bitmap decoded = null;\n"
+    "                        try (java.io.InputStream input = getContentResolver().openInputStream(android.net.Uri.parse(requestedUri))) {\n"
+    "                            if (input != null) decoded = android.graphics.BitmapFactory.decodeStream(input);\n"
+    "                        } catch (Exception ignored) { }\n"
+    "                        final android.graphics.Bitmap result = decoded;\n"
+    "                        runOnUiThread(() -> {\n"
+    "                            if (albumArtView != null && requestedUri.equals(albumArtView.getTag())) {\n"
+    "                                if (result != null) albumArtView.setImageBitmap(result);\n"
+    "                                else albumArtView.setImageResource(android.R.drawable.ic_media_play);\n"
+    "                            }\n"
+    "                        });\n"
+    "                    }).start();\n"
+    "                } else if (artUri == null) {\n"
+    "                    albumArtView.setImageResource(android.R.drawable.ic_media_play);\n"
+    "                    albumArtView.setTag(null);\n"
+    "                }\n"
+    "            }\n"
+    "        } catch (SecurityException denied) {\n"
+    "            activeMediaController = null;\n"
+    "            mediaTitleView.setText(\"Media access not enabled\");\n"
+    "            mediaArtistView.setText(\"Tap here to enable media access\");\n"
+    "            albumArtView.setImageResource(android.R.drawable.ic_media_play);\n"
+    "            albumArtView.setTag(null);\n"
+    "        } catch (RuntimeException ignored) {\n"
+    "            activeMediaController = null;\n"
+    "        }\n"
+    "    }\n\n"
+    "    private void addMediaSource(LinearLayout parent, String title, String key, String selected) {",
+    "add active media session reader",
+)
+
+main = replace_once(
+    main,
+    "    private void addTransportButton(LinearLayout parent, String title, int keyCode) {\n"
+    "        TextView button = label(title, 9, WHITE, true);\n"
+    "        button.setGravity(Gravity.CENTER);\n"
+    "        button.setPadding(dp(7), 0, dp(7), 0);\n"
+    "        button.setBackground(panel(Color.rgb(12, 26, 38), LINE, 9));\n"
+    "        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(38), title.equals(\"PLAY / PAUSE\") ? 1.35f : 0.8f);\n"
+    "        p.setMargins(dp(2), 0, dp(2), 0);\n"
+    "        parent.addView(button, p);\n"
+    "        button.setOnClickListener(v -> dispatchMediaKey(keyCode));\n"
+    "    }",
+    "    private void addTransportButton(LinearLayout parent, String title, int keyCode) {\n"
+    "        String glyph = keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS ? \"⏮\"\n"
+    "                : keyCode == android.view.KeyEvent.KEYCODE_MEDIA_NEXT ? \"⏭\" : \"⏯\";\n"
+    "        TextView button = label(glyph, 21, CYAN, true);\n"
+    "        button.setGravity(Gravity.CENTER);\n"
+    "        button.setContentDescription(title);\n"
+    "        button.setBackground(panel(Color.rgb(12, 26, 38), LINE, 9));\n"
+    "        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(42), title.equals(\"PLAY / PAUSE\") ? 1.2f : 1f);\n"
+    "        p.setMargins(dp(2), 0, dp(2), 0);\n"
+    "        parent.addView(button, p);\n"
+    "        button.setOnClickListener(v -> dispatchMediaKey(keyCode));\n"
+    "    }",
+    "replace transport text with icons",
+)
+
+main = replace_once(
+    main,
+    "    private void dispatchMediaKey(int keyCode) {\n"
+    "        try {\n"
+    "            AudioManager audio = (AudioManager) getSystemService(AUDIO_SERVICE);",
+    "    private void dispatchMediaKey(int keyCode) {\n"
+    "        try {\n"
+    "            if (activeMediaController != null) {\n"
+    "                android.media.session.MediaController.TransportControls transport = activeMediaController.getTransportControls();\n"
+    "                if (keyCode == android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS) transport.skipToPrevious();\n"
+    "                else if (keyCode == android.view.KeyEvent.KEYCODE_MEDIA_NEXT) transport.skipToNext();\n"
+    "                else {\n"
+    "                    android.media.session.PlaybackState state = activeMediaController.getPlaybackState();\n"
+    "                    if (state != null && state.getState() == android.media.session.PlaybackState.STATE_PLAYING) transport.pause();\n"
+    "                    else transport.play();\n"
+    "                }\n"
+    "                return;\n"
+    "            }\n"
+    "            AudioManager audio = (AudioManager) getSystemService(AUDIO_SERVICE);",
+    "send controls to active media session",
+)
+
+MAIN.write_text(main, encoding="utf-8")
+
+# Notification-listener access is the supported third-party route to active media sessions.
+listener_java = JAVA / "NeoDashMediaNotificationListener.java"
+listener_java.write_text(
+    "package com.neodash.launcher;\n\n"
+    "public class NeoDashMediaNotificationListener extends android.service.notification.NotificationListenerService {\n"
+    "    @Override public void onNotificationPosted(android.service.notification.StatusBarNotification sbn) { }\n"
+    "    @Override public void onNotificationRemoved(android.service.notification.StatusBarNotification sbn) { }\n"
+    "}\n",
+    encoding="utf-8",
+)
+manifest = MANIFEST.read_text(encoding="utf-8")
+service_entry = (
+    '        <service android:name=".NeoDashMediaNotificationListener" '
+    'android:label="NeoDash media access" '
+    'android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" '
+    'android:exported="true">'
+    '<intent-filter><action android:name="android.service.notification.NotificationListenerService" /></intent-filter>'
+    '</service>\n'
+)
+if "NeoDashMediaNotificationListener" not in manifest:
+    manifest = manifest.replace("</application>", service_entry + "    </application>", 1)
+    MANIFEST.write_text(manifest, encoding="utf-8")
+
+print("Map WebView renderer enabled; active media metadata/artwork and icon transport controls installed.")
