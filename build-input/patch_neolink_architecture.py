@@ -958,7 +958,7 @@ print("Full-tile app icons, fresh GPS-only map centering, selected nav app label
 # --- NeoDash UI 0.4.1: readable typography and refined touch-first surfaces. ---
 main = MAIN.read_text(encoding="utf-8")
 label_match = re.search(
-    r"    private TextView label\\([^)]*\\) \\{.*?\\n    \\}",
+    r"    private TextView label\([^)]*\) \{.*?\n    \}",
     main,
     flags=re.S,
 )
@@ -966,15 +966,15 @@ if not label_match:
     raise SystemExit("UI typography: could not locate label helper")
 label_block = label_match.group(0)
 if "NEODASH_UI_041_TYPOGRAPHY" not in label_block:
-    return_line = re.search(r"(?m)^\\s*return v;\\s*$", label_block)
+    return_line = re.search(r"(?m)^\s*return v;\s*$", label_block)
     if not return_line:
         raise SystemExit("UI typography: could not locate label return")
     typography = (
-        "        // NEODASH_UI_041_TYPOGRAPHY: readable on older 7-inch head-unit displays.\\n"
-        "        float readableSp = size <= 9 ? 10.5f : (size <= 12 ? 12.0f : size);\\n"
-        "        v.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, readableSp);\\n"
-        "        v.setTypeface(Typeface.create(size >= 30 ? \\"sans-serif-light\\" : (bold ? \\"sans-serif-medium\\" : \\"sans-serif\\"), Typeface.NORMAL));\\n"
-        "        v.setLetterSpacing(size >= 30 ? -0.012f : 0.012f);\\n"
+        "        // NEODASH_UI_041_TYPOGRAPHY: readable on older 7-inch head-unit displays.\n"
+        "        float readableSp = size <= 9 ? 10.5f : (size <= 12 ? 12.0f : size);\n"
+        "        v.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, readableSp);\n"
+        "        v.setTypeface(Typeface.create(size >= 30 ? \"sans-serif-light\" : (bold ? \"sans-serif-medium\" : \"sans-serif\"), Typeface.NORMAL));\n"
+        "        v.setLetterSpacing(size >= 30 ? -0.012f : 0.012f);\n"
     )
     label_block = label_block[:return_line.start()] + typography + label_block[return_line.start():]
     main = main[:label_match.start()] + label_block + main[label_match.end():]
