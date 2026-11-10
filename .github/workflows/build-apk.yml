@@ -123,19 +123,19 @@ jobs:
       - name: Build debug APK
         run: gradle --no-daemon -p build-source/NeoDash-Sleek-v0.3.0 clean assembleDebug
 
-      - name: Verify and name NeoDash 0.4.0 architecture APK
+      - name: Verify and name NeoDash 0.4.1 UI and typography APK
         if: startsWith(github.ref, 'refs/heads/architecture/')
         run: |
           APK="build-source/NeoDash-Sleek-v0.3.0/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
-          cp "$APK" NeoDash-0.4.0-Architecture-Preview-debug.apk
+          cp "$APK" NeoDash-0.4.1-UI-Typography-Preview-debug.apk
 
       - name: Upload NeoDash 0.4.0 architecture artifact
         if: startsWith(github.ref, 'refs/heads/architecture/')
         uses: actions/upload-artifact@v4
         with:
-          name: NeoDash-0.4.0-Architecture-Preview-debug
-          path: NeoDash-0.4.0-Architecture-Preview-debug.apk
+          name: NeoDash-0.4.1-UI-Typography-Preview-debug
+          path: NeoDash-0.4.1-UI-Typography-Preview-debug.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -180,17 +180,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RELEASE_TAG="v0.4.0-architecture-preview"
-          ASSETS="NeoDash-0.4.0-Architecture-Preview-debug.apk NeoLink-0.1.0-Architecture-Preview-debug.apk"
+          RELEASE_TAG="v0.4.1-ui-typography-preview"
+          ASSETS="NeoDash-0.4.1-UI-Typography-Preview-debug.apk NeoLink-0.1.0-Architecture-Preview-debug.apk"
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" $ASSETS --repo "$GITHUB_REPOSITORY" --clobber
           else
             gh release create "$RELEASE_TAG" $ASSETS \
               --repo "$GITHUB_REPOSITORY" \
-              --title "NeoDash 0.4.0 — Architecture Preview" \
+              --title "NeoDash 0.4.1 — UI & Typography Preview" \
               --prerelease \
               --target "$GITHUB_SHA" \
-              --notes "Early architecture preview of the NeoDash and NeoLink split. Includes immediate Android system-clock display and expanded installed-app inventory. NeoLink is a separate companion APK. Debug-signed builds for private testing; not a stable release. Media artwork and transport-control improvements remain in development."
+              --notes "NeoDash 0.4.1 UI and typography preview for Android 8.1/API 27 and newer. Includes refined typography, clearer text hierarchy, larger readable labels, and polished dashboard surfaces. Separate NeoLink companion APK. Debug-signed builds for testing; not a stable release."
           fi
 
       - name: Publish APK to GitHub Releases
