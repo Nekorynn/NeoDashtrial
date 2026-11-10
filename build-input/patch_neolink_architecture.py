@@ -953,3 +953,74 @@ main = replace_once(
 )
 MAIN.write_text(main, encoding="utf-8")
 print("Full-tile app icons, fresh GPS-only map centering, selected nav app labeling, and direct media-access setup applied.")
+
+
+# --- NeoDash UI 0.4.1: readable typography and refined touch-first surfaces. ---
+main = MAIN.read_text(encoding="utf-8")
+label_match = re.search(
+    r"    private TextView label\\([^)]*\\) \\{.*?\\n    \\}",
+    main,
+    flags=re.S,
+)
+if not label_match:
+    raise SystemExit("UI typography: could not locate label helper")
+label_block = label_match.group(0)
+if "NEODASH_UI_041_TYPOGRAPHY" not in label_block:
+    return_line = re.search(r"(?m)^\\s*return v;\\s*$", label_block)
+    if not return_line:
+        raise SystemExit("UI typography: could not locate label return")
+    typography = (
+        "        // NEODASH_UI_041_TYPOGRAPHY: readable on older 7-inch head-unit displays.\\n"
+        "        float readableSp = size <= 9 ? 10.5f : (size <= 12 ? 12.0f : size);\\n"
+        "        v.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, readableSp);\\n"
+        "        v.setTypeface(Typeface.create(size >= 30 ? \\"sans-serif-light\\" : (bold ? \\"sans-serif-medium\\" : \\"sans-serif\\"), Typeface.NORMAL));\\n"
+        "        v.setLetterSpacing(size >= 30 ? -0.012f : 0.012f);\\n"
+    )
+    label_block = label_block[:return_line.start()] + typography + label_block[return_line.start():]
+    main = main[:label_match.start()] + label_block + main[label_match.end():]
+
+# Give the dashboard clock a little more presence without crowding the pane.
+main = replace_once(
+    main,
+    'clockView = label("--:--", 56, WHITE, true);',
+    'clockView = label("--:--", 60, WHITE, true);',
+    "refine dashboard clock hierarchy",
+)
+
+# Increase the visual breathing room in the media strip and make its metadata easier to scan.
+main = replace_once(
+    main,
+    'mediaTitleView = label("No active player", 11, WHITE, true);',
+    'mediaTitleView = label("No active player", 13, WHITE, true);',
+    "improve media title legibility",
+)
+main = replace_once(
+    main,
+    'mediaArtistView = label("Start music on your connected device", 9, MUTED, false);',
+    'mediaArtistView = label("Start music on your connected device", 11, MUTED, false);',
+    "improve media subtitle legibility",
+)
+main = replace_once(
+    main,
+    'TextView caption = label(name.toUpperCase(Locale.getDefault()), iconScale == 0 ? 9 : 10, WHITE, true);',
+    'TextView caption = label(name.toUpperCase(Locale.getDefault()), iconScale == 0 ? 10 : 11, WHITE, true);',
+    "improve shortcut caption legibility",
+)
+main = replace_once(
+    main,
+    'TextView pageLabel = label((shortcutPage + 1) + " / " + pageCount, 8, MUTED, true);',
+    'TextView pageLabel = label((shortcutPage + 1) + " / " + pageCount, 10, MUTED, true);',
+    "improve shortcut page indicator legibility",
+)
+
+# Slightly stronger visual separation while preserving the existing NeoDash palette.
+main = main.replace(
+    "left.setBackground(panel(PANEL, LINE, 18));",
+    "left.setBackground(panel(PANEL, Color.rgb(49, 101, 135), 20));",
+)
+main = main.replace(
+    "tile.setBackground(panel(featured ? Color.rgb(13, 33, 51) : PANEL_HI, stroke, 17));",
+    "tile.setBackground(panel(featured ? Color.rgb(15, 38, 57) : PANEL_HI, stroke, 19));",
+)
+MAIN.write_text(main, encoding="utf-8")
+print("NeoDash 0.4.1 typography and touch-first UI polish applied.")
