@@ -839,7 +839,7 @@ main = replace_once(
     "        hub.addView(mediaAccessButton, accessParams);\n"
     "        mediaAccessButton.setClickable(true);\n"
     "        mediaAccessButton.setFocusable(true);\n"
-    "        mediaAccessButton.setContentDescription(\\"Open Android notification access settings for media controls\\");\n"
+    "        mediaAccessButton.setContentDescription(\"Open Android notification access settings for media controls\");\n"
     "        mediaAccessButton.setOnClickListener(v -> openMediaNotificationAccess());\n"
     "        mediaAccessButton.setVisibility(hasMediaNotificationAccess() ? View.GONE : View.VISIBLE);\n",
     "add explicit media access grant button",
