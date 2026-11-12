@@ -998,7 +998,7 @@ if "NEODASH_042_ADJACENT_MAP_LAUNCH" not in main:
     main = main.replace(anchor, adjacent_helper + "\\n" + anchor, 1)
     # Route the generic package-launch path through the helper. This is deliberately
     # scoped to launchPackageOrFind so unrelated intents retain their existing behavior.
-    method = re.search(r'    private void launchPackageOrFind\\([^)]*\\) \\{.*?\\n    \\}', main, flags=re.S)
+    method = re.search(r'    private void launchPackageOrFind\([^)]*\) \{.*?\n    \}', main, flags=re.S)
     if not method:
         raise SystemExit("0.4.2: could not isolate package launcher method")
     block = method.group(0)
@@ -1008,14 +1008,26 @@ if "NEODASH_042_ADJACENT_MAP_LAUNCH" not in main:
     main = main[:method.start()] + block + main[method.end():]
     MAIN.write_text(main, encoding="utf-8")
 
+
+# Make the shortcut artwork fill the image area; preserve the caption below it.
+shortcut_start = main.index("private void addShortcut(")
+shortcut_end = main.find("\\n    private ", shortcut_start + 1)
+if shortcut_start < 0 or shortcut_end < 0:
+    raise SystemExit("0.4.2: could not locate shortcut tile method")
+shortcut_block = main[shortcut_start:shortcut_end]
+shortcut_block = shortcut_block.replace("ImageView.ScaleType.FIT_CENTER", "ImageView.ScaleType.CENTER_CROP")
+shortcut_block = shortcut_block.replace("tile.setPadding(dp(7), dp(8), dp(7), dp(8));", "tile.setPadding(dp(1), dp(1), dp(1), dp(1));")
+main = main[:shortcut_start] + shortcut_block + main[shortcut_end:]
+MAIN.write_text(main, encoding="utf-8")
+
 manifest = MANIFEST.read_text(encoding="utf-8")
 manifest = re.sub(r'<application([^>]*)>', lambda m: '<application' + (m.group(1) if 'android:resizeableActivity=' in m.group(1) else m.group(1) + ' android:resizeableActivity="true"') + '>', manifest, count=1)
 MANIFEST.write_text(manifest, encoding="utf-8")
 
 gradle_file = ROOT / "app/build.gradle"
 gradle_text = gradle_file.read_text(encoding="utf-8")
-gradle_text = re.sub(r'(versionCode\\s*=?\\s*)\\d+', r'\\g<1>42', gradle_text, count=1)
-gradle_text = re.sub(r'(versionName\\s*=?\\s*)["\\'][^"\\']+["\\']', r'\\g<1>"0.4.2"', gradle_text, count=1)
+gradle_text = re.sub(r'(versionCode\s*=?\s*)\d+', r'\g<1>42', gradle_text, count=1)
+gradle_text = re.sub(r'(versionName\s*=?\s*)["\'][^"\']+["\']', r'\g<1>"0.4.2"', gradle_text, count=1)
 gradle_file.write_text(gradle_text, encoding="utf-8")
 print("NeoDash 0.4.2 adjacent-map experiment and resizable-activity manifest setting applied.")
 
