@@ -719,21 +719,21 @@ main = main[:shortcut_start] + shortcut_block + main[shortcut_end:]
 # Remove every remaining WebView-backed map-pane implementation detail. The
 # navigation shortcut still launches the selected external navigation package.
 main = MAIN.read_text(encoding="utf-8")
-main = re.sub(r"(?m)^\\s*private WebView mapWebView;\\s*\\n", "", main)
-main = re.sub(r"(?m)^\\s*private double mapLatitude = Double\\.NaN;\\s*\\n", "", main)
-main = re.sub(r"(?m)^\\s*private double mapLongitude = Double\\.NaN;\\s*\\n", "", main)
+main = re.sub(r"(?m)^\s*private WebView mapWebView;\s*\n", "", main)
+main = re.sub(r"(?m)^\s*private double mapLatitude = Double\.NaN;\s*\n", "", main)
+main = re.sub(r"(?m)^\s*private double mapLongitude = Double\.NaN;\s*\n", "", main)
 main = re.sub(
-    r"(?ms)^\\s*mapWebView = new WebView\\(this\\);.*?mapPane\\.addView\\(mapWebView, new LinearLayout\\.LayoutParams\\(-1, 0, 1\\)\\);\\s*",
-    '            TextView navigationInfo = label("NAVIGATION OPENS IN YOUR SELECTED APP", 10, MUTED, true);\\n'
-    '            navigationInfo.setGravity(Gravity.CENTER);\\n'
-    '            mapPane.addView(navigationInfo, new LinearLayout.LayoutParams(-1, 0, 1));\\n',
+    r"(?ms)^\s*mapWebView = new WebView\(this\);.*?mapPane\.addView\(mapWebView, new LinearLayout\.LayoutParams\(-1, 0, 1\)\);\s*",
+    '            TextView navigationInfo = label("NAVIGATION OPENS IN YOUR SELECTED APP", 10, MUTED, true);\n'
+    '            navigationInfo.setGravity(Gravity.CENTER);\n'
+    '            mapPane.addView(navigationInfo, new LinearLayout.LayoutParams(-1, 0, 1));\n',
     main,
     count=1,
 )
-main = re.sub(r'(?m)^\\s*mapPane\\.addView\\(mapNote, mn\\);\\s*\\n?', "", main)
-main = re.sub(r'(?m)^\\s*TextView mapNote = label\\([^\\n]*\\);\\s*\\n?', "", main)
+main = re.sub(r'(?m)^\s*mapPane\.addView\(mapNote, mn\);\s*\n?', "", main)
+main = re.sub(r'(?m)^\s*TextView mapNote = label\([^\n]*\);\s*\n?', "", main)
 main = re.sub(
-    r"(?ms)^\\s*if \\(Double\\.isNaN\\(mapLatitude\\).*?^\\s*}\\s*\\n",
+    r"(?ms)^\s*if \(Double\.isNaN\(mapLatitude\).*?^\s*}\s*\n",
     "",
     main,
     count=1,
