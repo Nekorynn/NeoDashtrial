@@ -1002,9 +1002,21 @@ if "NEODASH_042_ADJACENT_MAP_LAUNCH" not in main:
     if not method:
         raise SystemExit("0.4.2: could not isolate package launcher method")
     block = method.group(0)
-    if "startActivity(launch);" not in block:
-        raise SystemExit("0.4.2: expected package launch call not found")
-    block = block.replace("startActivity(launch);", "launchExternalApp(launch, launch.getComponent() == null ? launch.getPackage() : launch.getComponent().getPackageName());", 1)
+    # The baseline launcher may call startActivity with a variable other than
+    # "launch". Wrap the actual first launch call instead of assuming its name.
+    launch_call = re.search(r"startActivity\\(([^;]+)\\);", block)
+    if not launch_call:
+        raise SystemExit("0.4.2: no startActivity call found in package launcher method")
+    signature = re.search(r"private void launchPackageOrFind\\(([^)]*)\\)", block)
+    if not signature:
+        raise SystemExit("0.4.2: could not read package launcher parameters")
+    string_params = re.findall(r"String\\s+(\\w+)", signature.group(1))
+    if not string_params:
+        raise SystemExit("0.4.2: package launcher has no String package parameter")
+    package_param = string_params[0]
+    intent_expr = launch_call.group(1).strip()
+    replacement = f"launchExternalApp({intent_expr}, {package_param});"
+    block = block[:launch_call.start()] + replacement + block[launch_call.end():]
     main = main[:method.start()] + block + main[method.end():]
     MAIN.write_text(main, encoding="utf-8")
 
