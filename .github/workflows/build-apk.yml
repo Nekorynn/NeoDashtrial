@@ -123,19 +123,19 @@ jobs:
       - name: Build debug APK
         run: gradle --no-daemon -p build-source/NeoDash-Sleek-v0.3.0 clean assembleDebug
 
-      - name: Verify and name NeoDash 0.4.2 adjacent-map and full-tile test APK
+      - name: Verify and name NeoDash 0.4.3 map, icon and media test APK
         if: startsWith(github.ref, 'refs/heads/architecture/') || startsWith(github.ref, 'refs/heads/test/')
         run: |
           APK="build-source/NeoDash-Sleek-v0.3.0/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
-          cp "$APK" NeoDash-0.4.2-Adjacent-Map-Full-Tile-Test-debug.apk
+          cp "$APK" NeoDash-0.4.3-Map-Icons-Media-Test-debug.apk
 
       - name: Upload NeoDash 0.4.2 test artifact
         if: startsWith(github.ref, 'refs/heads/architecture/') || startsWith(github.ref, 'refs/heads/test/')
         uses: actions/upload-artifact@v4
         with:
-          name: NeoDash-0.4.2-Adjacent-Map-Full-Tile-Test-debug
-          path: NeoDash-0.4.2-Adjacent-Map-Full-Tile-Test-debug.apk
+          name: NeoDash-0.4.3-Map-Icons-Media-Test-debug
+          path: NeoDash-0.4.3-Map-Icons-Media-Test-debug.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -180,17 +180,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RELEASE_TAG="v0.4.2-adjacent-map-full-tile-test"
-          ASSETS="NeoDash-0.4.2-Adjacent-Map-Full-Tile-Test-debug.apk NeoLink-0.1.0-Architecture-Preview-debug.apk"
+          RELEASE_TAG="v0.4.3-map-icons-media-test"
+          ASSETS="NeoDash-0.4.3-Map-Icons-Media-Test-debug.apk NeoLink-0.1.0-Architecture-Preview-debug.apk"
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" $ASSETS --repo "$GITHUB_REPOSITORY" --clobber
           else
             gh release create "$RELEASE_TAG" $ASSETS \
               --repo "$GITHUB_REPOSITORY" \
-              --title "NeoDash 0.4.2 — Adjacent Map & Full-Tile Shortcuts Test" \
+              --title "NeoDash 0.4.3 — Map, Icons & Media Access Fixes" \
               --prerelease \
               --target "$GITHUB_SHA" \
-              --notes "NeoDash 0.4.2 experimental test for Android 8.1/API 27 and newer. Adds a best-effort adjacent-window launch request for the selected external map app, marks NeoDash resizable, and enlarges shortcut artwork to fill the tile image area. Includes the separate NeoLink companion APK. Split-screen depends on head-unit firmware and map-app compatibility. Debug-signed test builds; not a stable release."
+              --notes "NeoDash 0.4.2 experimental test for Android 8.1/API 27 and newer. Restores an embedded Google Maps web view in the left map pane, corrects shortcut icon scaling to show complete artwork, and improves the media notification-access action. Includes the separate NeoLink companion APK. External map launching remains available. Debug-signed test builds; not a stable release."
           fi
 
       - name: Publish APK to GitHub Releases
