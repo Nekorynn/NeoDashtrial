@@ -722,9 +722,12 @@ installed_icon_new = (
     "            LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(-1, 0, 1);\n"
     "            tile.addView(icon, imageParams);"
 )
-if installed_icon_old not in shortcut_block:
-    raise SystemExit("Could not locate installed app icon layout in addShortcut")
-shortcut_block = shortcut_block.replace(installed_icon_old, installed_icon_new)
+if installed_icon_old in shortcut_block:
+    shortcut_block = shortcut_block.replace(installed_icon_old, installed_icon_new)
+else:
+    # Some source revisions already use a full-width FIT_CENTER icon view.
+    # Keep that layout and enlarge its artwork without cropping.
+    shortcut_block = shortcut_block.replace("icon.setScaleType(ImageView.ScaleType.FIT_CENTER);", "icon.setScaleType(ImageView.ScaleType.FIT_CENTER);\\n            icon.setScaleX(1.22f); icon.setScaleY(1.22f);", 1)
 main = main[:shortcut_start] + shortcut_block + main[shortcut_end:]
 
 # --- Remove embedded map rendering and all OSM URL/location-preview code. ---
