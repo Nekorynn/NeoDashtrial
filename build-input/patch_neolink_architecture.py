@@ -653,7 +653,7 @@ listener_java.write_text(
     "    @Override public void onNotificationPosted(android.service.notification.StatusBarNotification sbn) {\n"
     "        if (sbn == null || sbn.getNotification() == null) return;\n"
     "        String pkg = sbn.getPackageName();\n"
-    "        if (pkg == null || !pkg.toLowerCase(java.util.Locale.ROOT).contains(\\"spotify\\")) return;\n"
+    "        if (pkg == null || !pkg.toLowerCase(java.util.Locale.ROOT).contains(\"spotify\")) return;\n"
     "        android.os.Bundle extras = sbn.getNotification().extras;\n"
     "        if (extras == null) return;\n"
     "        android.graphics.Bitmap bitmap = extras.getParcelable(android.app.Notification.EXTRA_PICTURE);\n"
