@@ -59,7 +59,7 @@ jobs:
         run: python build-input/patch_neolink_architecture.py
 
       - name: Diagnose clock and media implementation before build
-        if: startsWith(github.ref, 'refs/heads/architecture/')
+        if: startsWith(github.ref, 'refs/heads/architecture/') || startsWith(github.ref, 'refs/heads/test/')
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -82,7 +82,7 @@ jobs:
                       shown.add(i)
           PY
       - name: Diagnose installed-app drawer implementation
-        if: startsWith(github.ref, 'refs/heads/architecture/')
+        if: startsWith(github.ref, 'refs/heads/architecture/') || startsWith(github.ref, 'refs/heads/test/')
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -111,7 +111,7 @@ jobs:
           PY
 
       - name: Verify architecture boundaries
-        if: startsWith(github.ref, 'refs/heads/architecture/')
+        if: startsWith(github.ref, 'refs/heads/architecture/') || startsWith(github.ref, 'refs/heads/test/')
         run: |
           MAIN="build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/MainActivity.java"
           SERVICE="build-source/NeoDash-Sleek-v0.3.0/app/src/main/java/com/neodash/launcher/NeoDashSystemStatusService.java"
@@ -124,14 +124,14 @@ jobs:
         run: gradle --no-daemon -p build-source/NeoDash-Sleek-v0.3.0 clean assembleDebug
 
       - name: Verify and name NeoDash 0.4.2 adjacent-map and full-tile test APK
-        if: startsWith(github.ref, 'refs/heads/architecture/')
+        if: startsWith(github.ref, 'refs/heads/architecture/') || startsWith(github.ref, 'refs/heads/test/')
         run: |
           APK="build-source/NeoDash-Sleek-v0.3.0/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
           cp "$APK" NeoDash-0.4.2-Adjacent-Map-Full-Tile-Test-debug.apk
 
       - name: Upload NeoDash 0.4.2 test artifact
-        if: startsWith(github.ref, 'refs/heads/architecture/')
+        if: startsWith(github.ref, 'refs/heads/architecture/') || startsWith(github.ref, 'refs/heads/test/')
         uses: actions/upload-artifact@v4
         with:
           name: NeoDash-0.4.2-Adjacent-Map-Full-Tile-Test-debug
@@ -156,18 +156,18 @@ jobs:
           retention-days: 30
 
       - name: Build independent NeoLink APK
-        if: startsWith(github.ref, 'refs/heads/architecture/')
+        if: startsWith(github.ref, 'refs/heads/architecture/') || startsWith(github.ref, 'refs/heads/test/')
         run: gradle --no-daemon -p NeoLink clean assembleDebug
 
       - name: Verify and name NeoLink APK
-        if: startsWith(github.ref, 'refs/heads/architecture/')
+        if: startsWith(github.ref, 'refs/heads/architecture/') || startsWith(github.ref, 'refs/heads/test/')
         run: |
           APK="NeoLink/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
           cp "$APK" NeoLink-0.1.0-Architecture-Preview-debug.apk
 
       - name: Upload NeoLink APK artifact
-        if: startsWith(github.ref, 'refs/heads/architecture/')
+        if: startsWith(github.ref, 'refs/heads/architecture/') || startsWith(github.ref, 'refs/heads/test/')
         uses: actions/upload-artifact@v4
         with:
           name: NeoLink-0.1.0-Architecture-Preview-debug
@@ -176,12 +176,12 @@ jobs:
           retention-days: 30
 
       - name: Publish NeoDash 0.4.2 test release
-        if: startsWith(github.ref, 'refs/heads/architecture/')
+        if: startsWith(github.ref, 'refs/heads/architecture/') || startsWith(github.ref, 'refs/heads/test/')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           RELEASE_TAG="v0.4.2-adjacent-map-full-tile-test"
-          ASSETS="NeoDash-0.4.1-UI-Typography-Preview-debug.apk NeoLink-0.1.0-Architecture-Preview-debug.apk"
+          ASSETS="NeoDash-0.4.2-Adjacent-Map-Full-Tile-Test-debug.apk NeoLink-0.1.0-Architecture-Preview-debug.apk"
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" $ASSETS --repo "$GITHUB_REPOSITORY" --clobber
           else
