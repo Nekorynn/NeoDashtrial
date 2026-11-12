@@ -2,7 +2,7 @@ name: Build NeoDash and NeoLink APKs
 
 on:
   push:
-    branches: [main, 'architecture/**']
+    branches: [main, 'architecture/**', 'test/**']
   workflow_dispatch:
 
 permissions:
