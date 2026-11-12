@@ -1052,7 +1052,7 @@ MANIFEST.write_text(manifest, encoding="utf-8")
 
 gradle_file = ROOT / "app/build.gradle"
 gradle_text = gradle_file.read_text(encoding="utf-8")
-gradle_text = re.sub(r'(versionCode\s*=?\s*)\d+', r'\g<1>42', gradle_text, count=1)
-gradle_text = re.sub(r'(versionName\s*=?\s*)["\'][^"\']+["\']', r'\g<1>"0.4.2"', gradle_text, count=1)
+gradle_text = re.sub(r'(versionCode\s*=?\s*)\d+', r'\g<1>43', gradle_text, count=1)
+gradle_text = re.sub(r'(versionName\s*=?\s*)["\'][^"\']+["\']', r'\g<1>"0.4.3"', gradle_text, count=1)
 gradle_file.write_text(gradle_text, encoding="utf-8")
 print("NeoDash 0.4.2 adjacent-map experiment and resizable-activity manifest setting applied.")
