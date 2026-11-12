@@ -793,6 +793,32 @@ if remaining_map_refs:
     raise SystemExit("Embedded map cleanup incomplete; inspect references above")
 MAIN.write_text(main, encoding="utf-8")
 print("Removed embedded map URL builder, OSM references and map-specific location refresh code.")
+
+# --- Restore a real live map in the left dashboard pane. ---
+main = MAIN.read_text(encoding="utf-8")
+map_placeholder = (
+    '            TextView navigationInfo = label("NAVIGATION OPENS IN YOUR SELECTED APP", 10, MUTED, true);\n'
+    '            navigationInfo.setGravity(Gravity.CENTER);\n'
+    '            mapPane.addView(navigationInfo, new LinearLayout.LayoutParams(-1, 0, 1));\n'
+)
+map_view = (
+    '            android.webkit.WebView embeddedMap = new android.webkit.WebView(this);\n'
+    '            embeddedMap.setBackgroundColor(Color.rgb(8, 17, 27));\n'
+    '            android.webkit.WebSettings mapSettings = embeddedMap.getSettings();\n'
+    '            mapSettings.setJavaScriptEnabled(true);\n'
+    '            mapSettings.setDomStorageEnabled(true);\n'
+    '            mapSettings.setLoadWithOverviewMode(true);\n'
+    '            mapSettings.setUseWideViewPort(true);\n'
+    '            mapSettings.setBuiltInZoomControls(true);\n'
+    '            mapSettings.setDisplayZoomControls(false);\n'
+    '            embeddedMap.setWebViewClient(new android.webkit.WebViewClient());\n'
+    '            embeddedMap.loadUrl("https://www.google.com/maps?output=embed");\n'
+    '            mapPane.addView(embeddedMap, new LinearLayout.LayoutParams(-1, 0, 1));\n'
+)
+main = replace_once(main, map_placeholder, map_view, "restore embedded Google Maps pane")
+MAIN.write_text(main, encoding="utf-8")
+print("Restored embedded Google Maps web view in the left map pane.")
+
  
 # --- Notification access: deep-link to NeoDash and make the grant state explicit. ---
 main = replace_once(
@@ -811,7 +837,10 @@ main = replace_once(
     "        LinearLayout.LayoutParams accessParams = new LinearLayout.LayoutParams(-1, dp(32));\n"
     "        accessParams.topMargin = dp(5);\n"
     "        hub.addView(mediaAccessButton, accessParams);\n"
-    "        mediaAccessButton.setOnClickListener(v -> openMediaNotificationAccess());\n"
+    "        mediaAccessButton.setClickable(true);
+        mediaAccessButton.setFocusable(true);
+        mediaAccessButton.setContentDescription("Open Android notification access settings for media controls");
+        mediaAccessButton.setOnClickListener(v -> openMediaNotificationAccess());\n"
     "        mediaAccessButton.setVisibility(hasMediaNotificationAccess() ? View.GONE : View.VISIBLE);\n",
     "add explicit media access grant button",
 )
@@ -1012,7 +1041,7 @@ shortcut_end = main.find("\n    private ", shortcut_start + 1)
 if shortcut_start < 0 or shortcut_end < 0:
     raise SystemExit("0.4.2: could not locate shortcut tile method")
 shortcut_block = main[shortcut_start:shortcut_end]
-shortcut_block = shortcut_block.replace("ImageView.ScaleType.FIT_CENTER", "ImageView.ScaleType.CENTER_CROP")
+shortcut_block = shortcut_block.replace("ImageView.ScaleType.CENTER_CROP", "ImageView.ScaleType.FIT_CENTER")
 shortcut_block = shortcut_block.replace("tile.setPadding(dp(7), dp(8), dp(7), dp(8));", "tile.setPadding(dp(1), dp(1), dp(1), dp(1));")
 main = main[:shortcut_start] + shortcut_block + main[shortcut_end:]
 MAIN.write_text(main, encoding="utf-8")
