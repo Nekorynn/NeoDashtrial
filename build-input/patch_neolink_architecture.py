@@ -995,7 +995,7 @@ if "NEODASH_042_ADJACENT_MAP_LAUNCH" not in main:
     anchor = '    private void launchPackageOrFind'
     if anchor not in main:
         raise SystemExit("0.4.2: could not find package launcher method")
-    main = main.replace(anchor, adjacent_helper + "\\n" + anchor, 1)
+    main = main.replace(anchor, adjacent_helper + "\n" + anchor, 1)
     # Route the generic package-launch path through the helper. This is deliberately
     # scoped to launchPackageOrFind so unrelated intents retain their existing behavior.
     method = re.search(r'    private void launchPackageOrFind\([^)]*\) \{.*?\n    \}', main, flags=re.S)
@@ -1004,14 +1004,14 @@ if "NEODASH_042_ADJACENT_MAP_LAUNCH" not in main:
     block = method.group(0)
     if "startActivity(launch);" not in block:
         raise SystemExit("0.4.2: expected package launch call not found")
-    block = block.replace("startActivity(launch);", "launchExternalApp(launch, pkg);", 1)
+    block = block.replace("startActivity(launch);", "launchExternalApp(launch, launch.getComponent() == null ? launch.getPackage() : launch.getComponent().getPackageName());", 1)
     main = main[:method.start()] + block + main[method.end():]
     MAIN.write_text(main, encoding="utf-8")
 
 
 # Make the shortcut artwork fill the image area; preserve the caption below it.
 shortcut_start = main.index("private void addShortcut(")
-shortcut_end = main.find("\\n    private ", shortcut_start + 1)
+shortcut_end = main.find("\n    private ", shortcut_start + 1)
 if shortcut_start < 0 or shortcut_end < 0:
     raise SystemExit("0.4.2: could not locate shortcut tile method")
 shortcut_block = main[shortcut_start:shortcut_end]
