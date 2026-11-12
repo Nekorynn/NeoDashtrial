@@ -550,6 +550,7 @@ main = replace_once(
     "            android.graphics.Bitmap art = metadata.getBitmap(android.media.MediaMetadata.METADATA_KEY_ART);\n"
     "            if (art == null) art = metadata.getBitmap(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART);\n"
     "            if (art == null) art = metadata.getBitmap(android.media.MediaMetadata.METADATA_KEY_DISPLAY_ICON);\n"
+    "            if (art == null) art = NeoDashMediaNotificationListener.latestArtwork;\n"
     "            if (art != null) {\n"
     "                albumArtView.setImageBitmap(art);\n"
     "                albumArtView.setTag(\"bitmap:\" + title);\n"
@@ -811,8 +812,14 @@ map_view = (
     '            mapSettings.setUseWideViewPort(true);\n'
     '            mapSettings.setBuiltInZoomControls(true);\n'
     '            mapSettings.setDisplayZoomControls(false);\n'
-    '            embeddedMap.setWebViewClient(new android.webkit.WebViewClient());\n'
-    '            embeddedMap.loadUrl("https://www.google.com/maps?output=embed");\n'
+    '            embeddedMap.setWebChromeClient(new android.webkit.WebChromeClient());\n'
+    '            embeddedMap.setLayerType(View.LAYER_TYPE_HARDWARE, null);\n'
+    '            mapSettings.setJavaScriptCanOpenWindowsAutomatically(true);\n'
+    '            android.webkit.CookieManager.getInstance().setAcceptCookie(true);\n'
+    '            embeddedMap.setWebViewClient(new android.webkit.WebViewClient() {\n'
+    '                @Override public void onReceivedError(android.webkit.WebView view, android.webkit.WebResourceRequest request, android.webkit.WebResourceError error) { if (request.isForMainFrame()) Toast.makeText(NeoDashActivity.this, "Google Maps failed to load. Check internet access.", Toast.LENGTH_LONG).show(); }\n'
+    '            });\n'
+    '            embeddedMap.loadUrl("https://www.google.com/maps?output=search");\n'
     '            mapPane.addView(embeddedMap, new LinearLayout.LayoutParams(-1, 0, 1));\n'
 )
 main = replace_once(main, map_placeholder, map_view, "restore embedded Google Maps pane")
