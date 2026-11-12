@@ -716,6 +716,38 @@ shortcut_block = shortcut_block.replace(installed_icon_old, installed_icon_new)
 main = main[:shortcut_start] + shortcut_block + main[shortcut_end:]
 
 # --- Remove embedded map rendering and all OSM URL/location-preview code. ---
+# Remove every remaining WebView-backed map-pane implementation detail. The
+# navigation shortcut still launches the selected external navigation package.
+main = MAIN.read_text(encoding="utf-8")
+main = re.sub(r"(?m)^\\s*private WebView mapWebView;\\s*\\n", "", main)
+main = re.sub(r"(?m)^\\s*private double mapLatitude = Double\\.NaN;\\s*\\n", "", main)
+main = re.sub(r"(?m)^\\s*private double mapLongitude = Double\\.NaN;\\s*\\n", "", main)
+main = re.sub(
+    r"(?ms)^\\s*mapWebView = new WebView\\(this\\);.*?mapPane\\.addView\\(mapWebView, new LinearLayout\\.LayoutParams\\(-1, 0, 1\\)\\);\\s*",
+    '            TextView navigationInfo = label("NAVIGATION OPENS IN YOUR SELECTED APP", 10, MUTED, true);\\n'
+    '            navigationInfo.setGravity(Gravity.CENTER);\\n'
+    '            mapPane.addView(navigationInfo, new LinearLayout.LayoutParams(-1, 0, 1));\\n',
+    main,
+    count=1,
+)
+main = re.sub(r'(?m)^\\s*mapPane\\.addView\\(mapNote, mn\\);\\s*\\n?', "", main)
+main = re.sub(r'(?m)^\\s*TextView mapNote = label\\([^\\n]*\\);\\s*\\n?', "", main)
+main = re.sub(
+    r"(?ms)^\\s*if \\(Double\\.isNaN\\(mapLatitude\\).*?^\\s*}\\s*\\n",
+    "",
+    main,
+    count=1,
+)
+remaining_map_refs = [(i + 1, line) for i, line in enumerate(main.splitlines())
+                     if re.search(r"openstreetmap|buildEmbeddedMapUrl|mapWebView|mapNote|mapLatitude|mapLongitude", line, re.I)]
+if remaining_map_refs:
+    print("MAP/OSM REFERENCES AFTER CLEANUP:")
+    for line_no, line in remaining_map_refs:
+        print(f"{line_no}: {line}")
+    raise SystemExit("Embedded map cleanup incomplete; inspect references above")
+MAIN.write_text(main, encoding="utf-8")
+print("Removed all embedded map WebView code; navigation remains external-app only.")
+
 main = MAIN.read_text(encoding="utf-8")
 main = re.sub(
     r"    private String buildEmbeddedMapUrl\(\) \{.*?\n    \}\n\n",
