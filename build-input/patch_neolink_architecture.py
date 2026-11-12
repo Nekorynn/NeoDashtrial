@@ -666,7 +666,7 @@ if "NeoDashMediaNotificationListener" not in manifest:
     manifest = manifest.replace("</application>", service_entry + "    </application>", 1)
     MANIFEST.write_text(manifest, encoding="utf-8")
 
-print("Map WebView renderer enabled; active media metadata/artwork and icon transport controls installed.")
+print("External navigation-only dashboard; active media metadata/artwork and icon transport controls installed.")
 
 
 # --- Quick-launch tiles: let the app artwork use the full tile body. ---
@@ -887,11 +887,17 @@ main = replace_once(
     "refresh media permission and metadata on resume",
 )
 MAIN.write_text(main, encoding="utf-8")
-print("Full-tile app icons, fresh GPS-only map centering, selected nav app labeling, and direct media-access setup applied.")
+print("Full-tile app icons, external navigation-only dashboard, and direct media-access setup applied.")
 
 
 # --- NeoDash UI 0.4.1: readable typography and refined touch-first surfaces. ---
 main = MAIN.read_text(encoding="utf-8")
+# The embedded-map cleanup removes the old WebView setup, but the external map
+# launcher must still declare its own launch Intent before checking/starting it.
+main = main.replace(
+    "        if (launch == null) launch = getPackageManager().getLaunchIntentForPackage(pkg);",
+    "        Intent launch = getPackageManager().getLaunchIntentForPackage(pkg);",
+)
 label_match = re.search(
     r"    private TextView label\([^)]*\) \{.*?\n    \}",
     main,
