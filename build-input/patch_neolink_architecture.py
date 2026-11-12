@@ -734,8 +734,13 @@ main = re.sub(
 main = main.replace("            mapWebView.loadUrl(buildEmbeddedMapUrl());\n", "")
 main = main.replace("            requestFreshMapLocation();\n", "")
 main = main.replace('        TextView mapNote = label("MAP PANEL: OpenStreetMap  ·  NAVIGATION: YOUR SELECTED APP", 8, MUTED, false);\n', "")
-if "openstreetmap" in main.lower() or "openstreetmap.org" in main.lower() or "buildEmbeddedMapUrl" in main:
-    raise SystemExit("Embedded map cleanup failed: OSM/map URL code remains")
+remaining_map_refs = [(i + 1, line) for i, line in enumerate(main.splitlines())
+                     if re.search(r"openstreetmap|buildEmbeddedMapUrl|mapWebView|mapNote|mapLatitude|mapLongitude", line, re.I)]
+if remaining_map_refs:
+    print("MAP/OSM REFERENCES AFTER CLEANUP:")
+    for line_no, line in remaining_map_refs:
+        print(f"{line_no}: {line}")
+    raise SystemExit("Embedded map cleanup incomplete; inspect references above")
 MAIN.write_text(main, encoding="utf-8")
 print("Removed embedded map URL builder, OSM references and map-specific location refresh code.")
  
