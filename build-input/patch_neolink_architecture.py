@@ -831,7 +831,7 @@ map_view = (
     '            mapSettings.setJavaScriptCanOpenWindowsAutomatically(true);\n'
     '            android.webkit.CookieManager.getInstance().setAcceptCookie(true);\n'
     '            embeddedMap.setWebViewClient(new android.webkit.WebViewClient() {\n'
-    '                @Override public void onReceivedError(android.webkit.WebView view, android.webkit.WebResourceRequest request, android.webkit.WebResourceError error) { if (request.isForMainFrame()) Toast.makeText(NeoDashActivity.this, "Google Maps failed to load. Check internet access.", Toast.LENGTH_LONG).show(); }\n'
+    '                @Override public void onReceivedError(android.webkit.WebView view, android.webkit.WebResourceRequest request, android.webkit.WebResourceError error) { if (request.isForMainFrame()) Toast.makeText(MainActivity.this, "Google Maps failed to load. Check internet access.", Toast.LENGTH_LONG).show(); }\n'
     '            });\n'
     '            embeddedMap.loadUrl("https://www.google.com/maps?output=search");\n'
     '            mapPane.addView(embeddedMap, new LinearLayout.LayoutParams(-1, 0, 1));\n'
