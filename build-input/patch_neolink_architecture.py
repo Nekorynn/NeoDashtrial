@@ -1000,7 +1000,7 @@ if "NEODASH_042_ADJACENT_MAP_LAUNCH" not in main:
 # Make the shortcut artwork fill the image area; preserve the caption below it.
 main = MAIN.read_text(encoding="utf-8")
 shortcut_start = main.index("private void addShortcut(")
-shortcut_end = main.find("\\n    private ", shortcut_start + 1)
+shortcut_end = main.find("\n    private ", shortcut_start + 1)
 if shortcut_start < 0 or shortcut_end < 0:
     raise SystemExit("0.4.2: could not locate shortcut tile method")
 shortcut_block = main[shortcut_start:shortcut_end]
@@ -1015,7 +1015,7 @@ MANIFEST.write_text(manifest, encoding="utf-8")
 
 gradle_file = ROOT / "app/build.gradle"
 gradle_text = gradle_file.read_text(encoding="utf-8")
-gradle_text = re.sub(r'(versionCode\\s*=?\\s*)\\d+', r'\\g<1>42', gradle_text, count=1)
-gradle_text = re.sub(r'(versionName\\s*=?\\s*)["\\'][^"\\']+["\\']', r'\\g<1>"0.4.2"', gradle_text, count=1)
+gradle_text = re.sub(r'(versionCode\s*=?\s*)\d+', r'\g<1>42', gradle_text, count=1)
+gradle_text = re.sub(r'(versionName\s*=?\s*)["\'][^"\']+["\']', r'\g<1>"0.4.2"', gradle_text, count=1)
 gradle_file.write_text(gradle_text, encoding="utf-8")
 print("NeoDash 0.4.2 adjacent-map experiment and resizable-activity manifest setting applied.")
