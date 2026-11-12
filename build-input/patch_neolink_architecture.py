@@ -447,24 +447,7 @@ print("NeoDash/NeoLink architecture patch applied.")
 
 
 
-# --- Embedded map: the existing OpenStreetMap page uses JavaScript to render tiles. ---
-main = MAIN.read_text(encoding="utf-8")
-main = replace_once(
-    main,
-    "            mapWebView.setBackgroundColor(Color.rgb(8, 16, 23));\n",
-    "            mapWebView.setBackgroundColor(Color.rgb(8, 16, 23));\n"
-    "            mapWebView.setWebViewClient(new android.webkit.WebViewClient());\n",
-    "install embedded map WebView client",
-)
-main = replace_once(main, "            settings.setJavaScriptEnabled(false);", "            settings.setJavaScriptEnabled(true);", "enable map renderer JavaScript")
-main = replace_once(main, "            settings.setDomStorageEnabled(false);", "            settings.setDomStorageEnabled(true);", "enable map renderer storage")
-main = replace_once(
-    main,
-    "            settings.setSupportZoom(true);",
-    "            settings.setSupportZoom(true);\n"
-    "            settings.setLoadsImagesAutomatically(true);\n",
-    "enable map tile images",
-)
+# Map rendering is intentionally not part of NeoDash; navigation launches the selected external app.
 
 # --- Media artwork/session support. Read Android's active MediaSession metadata. ---
 main = replace_once(
@@ -686,29 +669,6 @@ if "NeoDashMediaNotificationListener" not in manifest:
 print("Map WebView renderer enabled; active media metadata/artwork and icon transport controls installed.")
 
 
-# Keep the embedded map useful before Android has a first GPS/network location fix.
-main = MAIN.read_text(encoding="utf-8")
-main = replace_once(
-    main,
-    '        if (Double.isNaN(lat) || Double.isNaN(lon)) {\n'
-    '            return "https://www.openstreetmap.org";\n'
-    '        }',
-    '        if (Double.isNaN(lat) || Double.isNaN(lon)) {\n'
-    '            double fallbackLat = 12.8797; // Philippines overview until a device fix is available.\n'
-    '            double fallbackLon = 121.7740;\n'
-    '            double fallbackDeltaLat = 0.12;\n'
-    '            double fallbackDeltaLon = 0.16;\n'
-    '            return "https://www.openstreetmap.org/export/embed.html?bbox="\n'
-    '                    + (fallbackLon - fallbackDeltaLon) + "%2C" + (fallbackLat - fallbackDeltaLat)\n'
-    '                    + "%2C" + (fallbackLon + fallbackDeltaLon) + "%2C" + (fallbackLat + fallbackDeltaLat)\n'
-    '                    + "&layer=mapnik";\n'
-    '        }',
-    "show a map even before first location fix",
-)
-MAIN.write_text(main, encoding="utf-8")
-print("Embedded map now has a Philippines fallback view until device location is available.")
-
-
 # --- Quick-launch tiles: let the app artwork use the full tile body. ---
 main = MAIN.read_text(encoding="utf-8")
 shortcut_start = main.index("private void addShortcut(")
@@ -755,110 +715,30 @@ if installed_icon_old not in shortcut_block:
 shortcut_block = shortcut_block.replace(installed_icon_old, installed_icon_new)
 main = main[:shortcut_start] + shortcut_block + main[shortcut_end:]
 
-# --- Location: reject stale last-known fixes and request a fresh device fix. ---
-map_method = re.compile(
-    r"    private String buildEmbeddedMapUrl\(\) \{.*?\n    \}\n\n    private void launchConfiguredMapApp\(\)",
-    re.DOTALL,
-)
-new_map_method = (
-    "    private String buildEmbeddedMapUrl() {\n"
-    "        String selectedMapPackage = prefs.getString(\"map_package\", \"\").toLowerCase(Locale.ROOT);\n"
-    "        boolean googleMaps = selectedMapPackage.contains(\"google.android.apps.maps\");\n"
-    "        boolean waze = selectedMapPackage.contains(\"waze\");\n"
-    "        boolean here = selectedMapPackage.contains(\"here\");\n"
-    "        if (Double.isNaN(mapLatitude) || Double.isNaN(mapLongitude)) {\n"
-    "            double lat = 12.8797;\n"
-    "            double lon = 121.7740;\n"
-    "            if (googleMaps) return String.format(Locale.US, \"https://maps.google.com/maps?q=%.6f,%.6f&z=6&output=embed\", lat, lon);\n"
-    "            if (waze) return String.format(Locale.US, \"https://embed.waze.com/iframe?zoom=6&lat=%.6f&lon=%.6f&pin=0\", lat, lon);\n"
-    "            if (here) return String.format(Locale.US, \"https://wego.here.com/?map=%.6f,%.6f,6,normal\", lat, lon);\n"
-    "            return String.format(Locale.US,\n"
-    "                    \"https://www.openstreetmap.org/export/embed.html?bbox=%.6f%%2C%.6f%%2C%.6f%%2C%.6f&layer=mapnik\",\n"
-    "                    lon - 0.45, lat - 0.30, lon + 0.45, lat + 0.30);\n"
-    "        }\n"
-    "        if (googleMaps) return String.format(Locale.US, \"https://maps.google.com/maps?q=%.6f,%.6f&z=15&output=embed\", mapLatitude, mapLongitude);\n"
-    "        if (waze) return String.format(Locale.US, \"https://embed.waze.com/iframe?zoom=14&lat=%.6f&lon=%.6f&pin=1\", mapLatitude, mapLongitude);\n"
-    "        if (here) return String.format(Locale.US, \"https://wego.here.com/?map=%.6f,%.6f,14,normal\", mapLatitude, mapLongitude);\n"
-    "        double deltaLat = 0.018;\n"
-    "        double deltaLon = 0.024;\n"
-    "        return String.format(Locale.US,\n"
-    "                \"https://www.openstreetmap.org/export/embed.html?bbox=%.6f%%2C%.6f%%2C%.6f%%2C%.6f&layer=mapnik&marker=%.6f%%2C%.6f\",\n"
-    "                mapLongitude - deltaLon, mapLatitude - deltaLat, mapLongitude + deltaLon, mapLatitude + deltaLat,\n"
-    "                mapLatitude, mapLongitude);\n"
-    "    }\n\n"
-    "    private void requestFreshMapLocation() {\n"
-    "        if (android.os.Build.VERSION.SDK_INT >= 23\n"
-    "                && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {\n"
-    "            return;\n"
-    "        }\n"
-    "        LocationManager manager = (LocationManager) getSystemService(LOCATION_SERVICE);\n"
-    "        if (manager == null) return;\n"
-    "        long nowNanos = android.os.SystemClock.elapsedRealtimeNanos();\n"
-    "        Location best = null;\n"
-    "        try {\n"
-    "            for (String provider : manager.getProviders(true)) {\n"
-    "                Location cached = manager.getLastKnownLocation(provider);\n"
-    "                if (cached == null) continue;\n"
-    "                long age = nowNanos - cached.getElapsedRealtimeNanos();\n"
-    "                boolean fresh = age >= 0L && age <= 90_000_000_000L;\n"
-    "                boolean accurate = !cached.hasAccuracy() || cached.getAccuracy() <= 5000f;\n"
-    "                if (fresh && accurate && (best == null || cached.getElapsedRealtimeNanos() > best.getElapsedRealtimeNanos())) best = cached;\n"
-    "            }\n"
-    "            if (best != null) {\n"
-    "                mapLatitude = best.getLatitude();\n"
-    "                mapLongitude = best.getLongitude();\n"
-    "                if (mapWebView != null) mapWebView.loadUrl(buildEmbeddedMapUrl());\n"
-    "            }\n"
-    "            for (String provider : new String[]{LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER}) {\n"
-    "                if (!manager.isProviderEnabled(provider)) continue;\n"
-    "                manager.requestSingleUpdate(provider, new android.location.LocationListener() {\n"
-    "                    @Override public void onLocationChanged(Location location) {\n"
-    "                        if (location == null) return;\n"
-    "                        if (location.hasAccuracy() && location.getAccuracy() > 5000f) return;\n"
-    "                        long age = android.os.SystemClock.elapsedRealtimeNanos() - location.getElapsedRealtimeNanos();\n"
-    "                        if (age < 0L || age > 90_000_000_000L) return;\n"
-    "                        mapLatitude = location.getLatitude();\n"
-    "                        mapLongitude = location.getLongitude();\n"
-    "                        if (mapWebView != null) mapWebView.loadUrl(buildEmbeddedMapUrl());\n"
-    "                    }\n"
-    "                    @Override public void onStatusChanged(String provider, int status, android.os.Bundle extras) { }\n"
-    "                    @Override public void onProviderEnabled(String provider) { }\n"
-    "                    @Override public void onProviderDisabled(String provider) { }\n"
-    "                }, android.os.Looper.getMainLooper());\n"
-    "            }\n"
-    "        } catch (SecurityException denied) {\n"
-    "            Toast.makeText(this, \"Enable precise location for the live map\", Toast.LENGTH_LONG).show();\n"
-    "        } catch (RuntimeException ignored) { }\n"
-    "    }\n\n"
-    "    private void launchConfiguredMapApp()"
-)
-main, map_count = map_method.subn(new_map_method, main, count=1)
-if map_count != 1:
-    raise SystemExit("Could not replace embedded map location method")
-main = replace_once(
+# --- Remove embedded map rendering and all OSM URL/location-preview code. ---
+main = MAIN.read_text(encoding="utf-8")
+main = re.sub(
+    r"    private String buildEmbeddedMapUrl\(\) \{.*?\n    \}\n\n",
+    "",
     main,
-    "            mapWebView.loadUrl(buildEmbeddedMapUrl());",
-    "            mapWebView.loadUrl(buildEmbeddedMapUrl());\n"
-    "            requestFreshMapLocation();",
-    "request fresh location when map opens",
+    count=1,
+    flags=re.S,
 )
-# The selected navigation app is the app opened by the button; the live preview is OSM.
-main = replace_once(
+main = re.sub(
+    r"    private void requestFreshMapLocation\(\) \{.*?\n    \}\n\n",
+    "",
     main,
-    '        TextView openMap = label("OPEN NAV APP  ↗", 9, WHITE, true);',
-    '        String configuredMapPackage = prefs.getString("map_package", "");\n'
-    '        String configuredMapName = configuredMapPackage.isEmpty() ? "SELECT MAP APP" : appNameSafe(configuredMapPackage).toUpperCase(Locale.getDefault());\n'
-    '        TextView openMap = label("OPEN " + configuredMapName + "  ↗", 9, WHITE, true);',
-    "show the selected navigation app name",
+    count=1,
+    flags=re.S,
 )
-main = replace_once(
-    main,
-    '        TextView mapNote = label("MAP PANEL: OpenStreetMap  ·  NAVIGATION: YOUR SELECTED APP", 8, MUTED, false);',
-    '        String previewMapName = configuredMapPackage.contains("google.android.apps.maps") ? "GOOGLE MAPS" : (configuredMapPackage.contains("waze") ? "WAZE" : (configuredMapPackage.contains("here") ? "HERE" : "OPENSTREETMAP"));'
-    '        TextView mapNote = label("LIVE PREVIEW: " + previewMapName + "  ·  NAVIGATION: " + (configuredMapPackage.isEmpty() ? "NOT SELECTED" : configuredMapName), 8, MUTED, false);',
-    "clarify live map versus selected navigation app",
-)
-
+main = main.replace("            mapWebView.loadUrl(buildEmbeddedMapUrl());\n", "")
+main = main.replace("            requestFreshMapLocation();\n", "")
+main = main.replace('        TextView mapNote = label("MAP PANEL: OpenStreetMap  ·  NAVIGATION: YOUR SELECTED APP", 8, MUTED, false);\n', "")
+if "openstreetmap" in main.lower() or "openstreetmap.org" in main.lower() or "buildEmbeddedMapUrl" in main:
+    raise SystemExit("Embedded map cleanup failed: OSM/map URL code remains")
+MAIN.write_text(main, encoding="utf-8")
+print("Removed embedded map URL builder, OSM references and map-specific location refresh code.")
+ 
 # --- Notification access: deep-link to NeoDash and make the grant state explicit. ---
 main = replace_once(
     main,
