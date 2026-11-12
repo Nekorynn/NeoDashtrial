@@ -971,59 +971,36 @@ main = MAIN.read_text(encoding="utf-8")
 if "NEODASH_042_ADJACENT_MAP_LAUNCH" not in main:
     adjacent_helper = r'''
     // NEODASH_042_ADJACENT_MAP_LAUNCH: best-effort Android 7+ split-screen request.
-    private void launchExternalApp(Intent launch, String packageName) {
-        if (launch == null) return;
+    private Intent prepareAdjacentMapLaunch(Intent launch, String packageName) {
+        if (launch == null) return null;
         String selectedMap = prefs == null ? "" : prefs.getString("map_package", "");
         boolean isSelectedMap = packageName != null && packageName.equals(selectedMap);
         if (isSelectedMap && android.os.Build.VERSION.SDK_INT >= 24) {
-            Intent adjacent = new Intent(launch);
-            adjacent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT);
-            try {
-                startActivity(adjacent);
-                Toast.makeText(this, "Requested map beside NeoDash. Split-screen depends on head-unit support.", Toast.LENGTH_LONG).show();
-                return;
-            } catch (RuntimeException adjacentFailure) {
-                Toast.makeText(this, "Adjacent map launch unavailable; opening map normally.", Toast.LENGTH_LONG).show();
-            }
+            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT);
         }
-        try { startActivity(launch); }
-        catch (RuntimeException ex) {
-            Toast.makeText(this, "Unable to open selected app.", Toast.LENGTH_LONG).show();
-        }
+        return launch;
     }
 '''
     anchor = '    private void launchPackageOrFind'
     if anchor not in main:
         raise SystemExit("0.4.2: could not find package launcher method")
     main = main.replace(anchor, adjacent_helper + "\n" + anchor, 1)
-    # Route the generic package-launch path through the helper. This is deliberately
-    # scoped to launchPackageOrFind so unrelated intents retain their existing behavior.
     method = re.search(r'    private void launchPackageOrFind\([^)]*\) \{.*?\n    \}', main, flags=re.S)
     if not method:
         raise SystemExit("0.4.2: could not isolate package launcher method")
     block = method.group(0)
-    # The baseline launcher may call startActivity with a variable other than
-    # "launch". Wrap the actual first launch call instead of assuming its name.
-    launch_call = re.search(r"startActivity\\(([^;]+)\\);", block)
-    if not launch_call:
-        raise SystemExit("0.4.2: no startActivity call found in package launcher method")
-    signature = re.search(r"private void launchPackageOrFind\\(([^)]*)\\)", block)
-    if not signature:
-        raise SystemExit("0.4.2: could not read package launcher parameters")
-    string_params = re.findall(r"String\\s+(\\w+)", signature.group(1))
-    if not string_params:
-        raise SystemExit("0.4.2: package launcher has no String package parameter")
-    package_param = string_params[0]
-    intent_expr = launch_call.group(1).strip()
-    replacement = f"launchExternalApp({intent_expr}, {package_param});"
-    block = block[:launch_call.start()] + replacement + block[launch_call.end():]
+    launch_expr = "getPackageManager().getLaunchIntentForPackage(pkg)"
+    if launch_expr not in block:
+        raise SystemExit("0.4.2: expected package launch-intent lookup not found")
+    block = block.replace(launch_expr, "prepareAdjacentMapLaunch(" + launch_expr + ", pkg)", 1)
     main = main[:method.start()] + block + main[method.end():]
     MAIN.write_text(main, encoding="utf-8")
 
 
 # Make the shortcut artwork fill the image area; preserve the caption below it.
+main = MAIN.read_text(encoding="utf-8")
 shortcut_start = main.index("private void addShortcut(")
-shortcut_end = main.find("\n    private ", shortcut_start + 1)
+shortcut_end = main.find("\\n    private ", shortcut_start + 1)
 if shortcut_start < 0 or shortcut_end < 0:
     raise SystemExit("0.4.2: could not locate shortcut tile method")
 shortcut_block = main[shortcut_start:shortcut_end]
@@ -1038,8 +1015,7 @@ MANIFEST.write_text(manifest, encoding="utf-8")
 
 gradle_file = ROOT / "app/build.gradle"
 gradle_text = gradle_file.read_text(encoding="utf-8")
-gradle_text = re.sub(r'(versionCode\s*=?\s*)\d+', r'\g<1>42', gradle_text, count=1)
-gradle_text = re.sub(r'(versionName\s*=?\s*)["\'][^"\']+["\']', r'\g<1>"0.4.2"', gradle_text, count=1)
+gradle_text = re.sub(r'(versionCode\\s*=?\\s*)\\d+', r'\\g<1>42', gradle_text, count=1)
+gradle_text = re.sub(r'(versionName\\s*=?\\s*)["\\'][^"\\']+["\\']', r'\\g<1>"0.4.2"', gradle_text, count=1)
 gradle_file.write_text(gradle_text, encoding="utf-8")
 print("NeoDash 0.4.2 adjacent-map experiment and resizable-activity manifest setting applied.")
-
