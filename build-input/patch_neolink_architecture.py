@@ -649,7 +649,17 @@ listener_java = JAVA / "NeoDashMediaNotificationListener.java"
 listener_java.write_text(
     "package com.neodash.launcher;\n\n"
     "public class NeoDashMediaNotificationListener extends android.service.notification.NotificationListenerService {\n"
-    "    @Override public void onNotificationPosted(android.service.notification.StatusBarNotification sbn) { }\n"
+    "    public static volatile android.graphics.Bitmap latestArtwork;\n"
+    "    @Override public void onNotificationPosted(android.service.notification.StatusBarNotification sbn) {\n"
+    "        if (sbn == null || sbn.getNotification() == null) return;\n"
+    "        String pkg = sbn.getPackageName();\n"
+    "        if (pkg == null || !pkg.toLowerCase(java.util.Locale.ROOT).contains(\\"spotify\\")) return;\n"
+    "        android.os.Bundle extras = sbn.getNotification().extras;\n"
+    "        if (extras == null) return;\n"
+    "        android.graphics.Bitmap bitmap = extras.getParcelable(android.app.Notification.EXTRA_PICTURE);\n"
+    "        if (bitmap == null) bitmap = extras.getParcelable(android.app.Notification.EXTRA_LARGE_ICON);\n"
+    "        if (bitmap != null) latestArtwork = bitmap;\n"
+    "    }\n"
     "    @Override public void onNotificationRemoved(android.service.notification.StatusBarNotification sbn) { }\n"
     "}\n",
     encoding="utf-8",
