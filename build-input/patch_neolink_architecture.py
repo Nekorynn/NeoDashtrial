@@ -711,6 +711,7 @@ shortcut_block = shortcut_block.replace(custom_icon_old, custom_icon_new)
 
 installed_icon_old = (
     "            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);\n"
+    "            icon.setScaleX(1.22f); icon.setScaleY(1.22f);\n"
     "            int iconDp = iconScale == 0 ? 34 : (iconScale == 2 ? 52 : 43);\n"
     "            LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(dp(iconDp), 0, 1);\n"
     "            imageParams.gravity = Gravity.CENTER;\n"
